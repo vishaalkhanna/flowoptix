@@ -20,6 +20,7 @@ export default function LoginScreen() {
     const [error, setError] = useState('');
 
     const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.vercel.app';
+    const CALLBACK_URL = `${SITE_URL}/auth/callback`;
 
     const signInWithGoogle = async () => {
         setLoading(true);
@@ -27,7 +28,7 @@ export default function LoginScreen() {
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: SITE_URL,
+                redirectTo: CALLBACK_URL,
             },
         });
         setLoading(false);
@@ -44,7 +45,7 @@ export default function LoginScreen() {
         const { error: err } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
-                emailRedirectTo: SITE_URL,
+                emailRedirectTo: CALLBACK_URL,
             },
         });
         setLoading(false);
