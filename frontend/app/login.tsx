@@ -29,7 +29,7 @@ export default function LoginScreen() {
         const { error: err } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
-                emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081',
+                emailRedirectTo: process.env.EXPO_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081'),
             },
         });
         setLoading(false);
