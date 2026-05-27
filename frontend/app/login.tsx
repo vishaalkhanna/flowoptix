@@ -19,6 +19,21 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.vercel.app';
+
+    const signInWithGoogle = async () => {
+        setLoading(true);
+        setError('');
+        const { error: err } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: SITE_URL,
+            },
+        });
+        setLoading(false);
+        if (err) setError(err.message);
+    };
+
     const sendOtp = async () => {
         if (!email.trim()) {
             setError('Please enter your email address.');
@@ -29,7 +44,7 @@ export default function LoginScreen() {
         const { error: err } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
-                emailRedirectTo: process.env.EXPO_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081'),
+                emailRedirectTo: SITE_URL,
             },
         });
         setLoading(false);
@@ -66,7 +81,7 @@ export default function LoginScreen() {
                         Get AI-powered automation suggestions.
                     </Text>
 
-                    <TouchableOpacity style={styles.googleBtn} onPress={() => {}}>
+                    <TouchableOpacity style={styles.googleBtn} onPress={signInWithGoogle}>
                         <Text style={styles.googleG}>G</Text>
                         <Text style={styles.googleText}>Continue with Google</Text>
                     </TouchableOpacity>
