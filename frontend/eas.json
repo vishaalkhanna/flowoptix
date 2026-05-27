@@ -1,0 +1,25 @@
+{
+  "cli": {
+    "version": ">= 5.9.1"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://flowoptix.onrender.com",
+        "EXPO_PUBLIC_SITE_URL": "https://flowoptix-ten.vercel.app"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://flowoptix.onrender.com",
+        "EXPO_PUBLIC_SITE_URL": "https://flowoptix-ten.vercel.app"
+      }
+    }
+  }
+}
