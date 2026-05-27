@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process \"http://localhost:8081\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue)",
+      "PowerShell(Start-Sleep -Seconds 30; Get-Content \"$env:TEMP\\\\expo_web.log\" -ErrorAction SilentlyContinue | Select-Object -Last 15; netstat -ano | findstr \":8081\")",
+      "PowerShell(Get-Content \"$env:TEMP\\\\expo_web_err.log\" -ErrorAction SilentlyContinue | Select-Object -Last 20)"
+    ]
+  }
+}
