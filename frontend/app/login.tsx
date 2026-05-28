@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
     View, Text, TextInput, StyleSheet, Animated, Easing,
-    Platform, Pressable, KeyboardAvoidingView, ScrollView,
-    ActivityIndicator,
+    Platform, Pressable, TouchableOpacity, KeyboardAvoidingView,
+    ScrollView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -329,12 +329,16 @@ export default function LoginScreen() {
                         </Animated.View>
                     </Pressable>
 
-                    <Text style={s.terms}>
-                        No password needed · By continuing you agree to our{' '}
-                        <Text style={s.termLink} onPress={() => router.push('/terms' as any)}>Terms</Text>
-                        {' '}&amp;{' '}
-                        <Text style={s.termLink} onPress={() => router.push('/privacy' as any)}>Privacy</Text>
-                    </Text>
+                    <View style={s.termsRow}>
+                        <Text style={s.terms}>No password needed · By continuing you agree to our </Text>
+                        <TouchableOpacity onPress={() => router.push('/terms' as any)}>
+                            <Text style={s.termLink}>Terms</Text>
+                        </TouchableOpacity>
+                        <Text style={s.terms}> &amp; </Text>
+                        <TouchableOpacity onPress={() => router.push('/privacy' as any)}>
+                            <Text style={s.termLink}>Privacy</Text>
+                        </TouchableOpacity>
+                    </View>
                 </Animated.View>
             )}
 
@@ -658,8 +662,12 @@ const s = StyleSheet.create({
     infoHL:    { color: '#A855F7', fontWeight: '600' },
 
     // Terms
-    terms:    { fontSize: 12, color: '#555555', textAlign: 'center', lineHeight: 18, marginTop: 6 },
-    termLink: { color: '#A855F7' },
+    termsRow: {
+        flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
+        alignItems: 'center', marginTop: 6,
+    },
+    terms:    { fontSize: 12, color: '#555555', lineHeight: 18 },
+    termLink: { fontSize: 12, color: '#A855F7', lineHeight: 18, textDecorationLine: 'underline' },
 
     // Footer
     footerRow:  { flexDirection: 'row', alignItems: 'center', marginTop: 44 },
