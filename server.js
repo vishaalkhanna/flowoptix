@@ -268,7 +268,7 @@ app.post('/tasks/auto-log', async (req, res) => {
 
 // ── Integrations status ────────────────────────────────────────────────────
 app.get('/integrations/:user_id', async (req, res) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('user_integrations')
         .select('integration_type, is_connected, connected_at')
         .eq('user_id', req.params.user_id);
@@ -357,7 +357,7 @@ app.get('/gmail/callback', async (req, res) => {
 
 app.get('/gmail/analyze/:user_id', async (req, res) => {
     const { user_id } = req.params;
-    const { data: integ } = await supabase
+    const { data: integ } = await supabaseAdmin
         .from('user_integrations').select('access_token')
         .eq('user_id', user_id).eq('integration_type', 'gmail').single();
     if (!integ?.access_token) return res.status(401).json({ error: 'Gmail not connected' });
@@ -468,7 +468,7 @@ app.get('/calendar/callback', async (req, res) => {
 
 app.get('/calendar/analyze/:user_id', async (req, res) => {
     const { user_id } = req.params;
-    const { data: integ } = await supabase
+    const { data: integ } = await supabaseAdmin
         .from('user_integrations').select('access_token')
         .eq('user_id', user_id).eq('integration_type', 'calendar').single();
     if (!integ?.access_token) return res.status(401).json({ error: 'Calendar not connected' });
@@ -540,7 +540,7 @@ app.get('/calendar/analyze/:user_id', async (req, res) => {
 // ── Disconnect integration ─────────────────────────────────────────────────
 app.delete('/integrations/:user_id/:type', async (req, res) => {
     const { user_id, type } = req.params;
-    const { error } = await supabase.from('user_integrations')
+    const { error } = await supabaseAdmin.from('user_integrations')
         .update({ is_connected: false, access_token: null, refresh_token: null })
         .eq('user_id', user_id).eq('integration_type', type);
     if (error) return res.status(400).json({ error: error.message });
