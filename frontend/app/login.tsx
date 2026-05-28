@@ -43,10 +43,6 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
             50%  { background-position: 100% 50%; }
             100% { background-position: 0%   50%; }
         }
-        @keyframes titleFlow {
-            0%   { background-position: -200% center; }
-            100% { background-position:  200% center; }
-        }
         @keyframes pulseDot {
             0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.8); }
             60%     { box-shadow: 0 0 0 7px rgba(34,197,94,0);  }
@@ -64,15 +60,6 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         .fo-aurora2 { animation: aurora2 13s ease-in-out infinite; }
         .fo-aurora3 { animation: aurora3  8s ease-in-out infinite; }
         .fo-aurora4 { animation: aurora4 15s ease-in-out infinite; }
-
-        .fo-title {
-            background: linear-gradient(90deg, #A855F7 0%, #EC4899 35%, #06B6D4 65%, #A855F7 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: titleFlow 4s linear infinite;
-        }
 
         .fo-pulse { animation: pulseDot 2s ease-in-out infinite; }
         .fo-sparkle { animation: sparkle 2.5s ease-in-out infinite; }
@@ -132,6 +119,13 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
             padding: 0 !important;
         }
         .fo-input::placeholder { color: rgba(255,255,255,0.28) !important; }
+
+        @media (min-width: 769px) {
+            .fo-orb1 { width: 250px !important; height: 200px !important; }
+            .fo-orb2 { width: 220px !important; height: 180px !important; }
+            .fo-orb3 { width: 200px !important; height: 160px !important; }
+            .fo-orb4 { width: 180px !important; height: 140px !important; }
+        }
     `;
     document.head.appendChild(el);
 }
@@ -436,19 +430,19 @@ export default function LoginScreen() {
                 <Animated.View
                     style={[s.aurora, s.aurora1,
                             { opacity: aurora1Op, transform: [{ scale: aurora1Scale }] }]}
-                    {...wc('fo-aurora1')}
+                    {...wc('fo-aurora1', 'fo-orb1')}
                 />
                 <Animated.View
                     style={[s.aurora, s.aurora2,
                             { opacity: aurora2Op, transform: [{ scale: aurora2Scale }] }]}
-                    {...wc('fo-aurora2')}
+                    {...wc('fo-aurora2', 'fo-orb2')}
                 />
                 <Animated.View
                     style={[s.aurora, s.aurora3,
                             { opacity: aurora3Op, transform: [{ scale: aurora3Scale }] }]}
-                    {...wc('fo-aurora3')}
+                    {...wc('fo-aurora3', 'fo-orb3')}
                 />
-                <View style={[s.aurora, s.aurora4]} {...wc('fo-aurora4')} />
+                <View style={[s.aurora, s.aurora4]} {...wc('fo-aurora4', 'fo-orb4')} />
                 {/* Fade-to-black gradient over aurora */}
                 <View style={s.auroraFade} pointerEvents="none" />
             </View>
@@ -472,10 +466,7 @@ export default function LoginScreen() {
                             </Animated.View>
 
                             {/* Title */}
-                            {Platform.OS === 'web'
-                                ? <Text style={s.title} {...wc('fo-title')}>FlowOptix</Text>
-                                : <Text style={[s.title, s.titleNative]}>FlowOptix</Text>
-                            }
+                            <Text style={s.title}>FlowOptix</Text>
                         </View>
 
                         {/* Typewriter */}
@@ -523,7 +514,7 @@ const s = StyleSheet.create({
     },
 
     // Aurora
-    auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+    auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', zIndex: 0 },
     aurora: { position: 'absolute', borderRadius: 9999 },
     aurora1: {
         width: 520, height: 380, top: -120, left: -60,
@@ -552,15 +543,18 @@ const s = StyleSheet.create({
     },
 
     // Logo
-    logoSection: { alignItems: 'center', marginBottom: 44 },
+    logoSection: { alignItems: 'center', marginBottom: 44, zIndex: 10 },
     logoRow:     { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
     pulseDotWrap:{ width: 12, height: 12, justifyContent: 'center', alignItems: 'center' },
     pulseDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
     title: {
         fontSize: 52, fontWeight: '900', letterSpacing: -2,
         includeFontPadding: false,
+        color: '#ffffff',
+        textShadowColor: 'rgba(168,85,247,0.85)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 28,
     },
-    titleNative: { color: '#A855F7' },
     tagline: { fontSize: 15, color: '#06B6D4', letterSpacing: 0.4, textAlign: 'center' },
     cursor:  { color: '#06B6D4', opacity: 0.7 },
 
