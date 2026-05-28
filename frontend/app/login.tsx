@@ -1,370 +1,587 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    TextInput,
+    View, Text, TextInput, StyleSheet, Animated, Easing,
+    Platform, Pressable, KeyboardAvoidingView, ScrollView,
     ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Step = 'landing' | 'email' | 'otp';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const SITE_URL     = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.vercel.app';
+const CALLBACK_URL = `${SITE_URL}/auth/callback`;
+const TAGLINE      = 'Your productivity intelligence';
+
+// ─── Web-only CSS (injected once at module load) ───────────────────────────────
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const el = document.createElement('style');
+    el.textContent = `
+        @keyframes meshMove {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes shimmerSweep {
+            0%   { background-position: -200% center; }
+            100% { background-position:  200% center; }
+        }
+        @keyframes orbFloat1 {
+            0%,100% { transform: translate(0px, 0px); }
+            40%     { transform: translate(22px, -32px); }
+            70%     { transform: translate(-16px, 14px); }
+        }
+        @keyframes orbFloat2 {
+            0%,100% { transform: translate(0px, 0px); }
+            35%     { transform: translate(-28px, 22px); }
+            65%     { transform: translate(20px, -20px); }
+        }
+        @keyframes orbFloat3 {
+            0%,100% { transform: translate(0px, 0px); }
+            50%     { transform: translate(24px, -28px); }
+        }
+        @keyframes borderPulse {
+            0%,100% { border-color: rgba(255,255,255,0.10); }
+            50%     { border-color: rgba(124,92,255,0.35); }
+        }
+        .fo-bg {
+            background: linear-gradient(-45deg, #6C2BD9, #1a1a2e, #0d4f6e, #16213e, #4a1a8a);
+            background-size: 400% 400%;
+            animation: meshMove 16s ease infinite;
+        }
+        .fo-shimmer {
+            background: linear-gradient(
+                90deg,
+                #c4a0ff 0%, #06B6D4 25%, #ffffff 48%, #06B6D4 72%, #c4a0ff 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmerSweep 4s linear infinite;
+        }
+        .fo-orb1 { animation: orbFloat1 10s ease-in-out infinite; }
+        .fo-orb2 { animation: orbFloat2 13s ease-in-out infinite; }
+        .fo-orb3 { animation: orbFloat3  8s ease-in-out infinite; }
+        .fo-glass {
+            background: rgba(255,255,255,0.055) !important;
+            backdrop-filter: blur(28px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+        }
+        .fo-card-hover {
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .fo-card-hover:hover {
+            border-color: rgba(124,92,255,0.3) !important;
+            box-shadow: 0 24px 64px rgba(108,43,217,0.25) !important;
+        }
+        .fo-google-btn {
+            transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .fo-google-btn:hover {
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(255,255,255,0.28) !important;
+            box-shadow: 0 0 20px rgba(124,92,255,0.18) !important;
+        }
+        .fo-magic-btn {
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .fo-magic-btn:hover {
+            background: rgba(124,92,255,0.18) !important;
+            border-color: rgba(124,92,255,0.5) !important;
+        }
+        .fo-submit-btn {
+            transition: box-shadow 0.2s ease;
+        }
+        .fo-submit-btn:hover {
+            box-shadow: 0 12px 40px rgba(124,92,255,0.55) !important;
+        }
+        .fo-input-native {
+            background: transparent !important;
+            color: #f5f5f7 !important;
+            border: none !important;
+            outline: none !important;
+            width: 100%;
+            font-size: 15px;
+            padding: 0 !important;
+        }
+        .fo-input-native::placeholder { color: rgba(160,160,180,0.45) !important; }
+        .fo-grid {
+            background-image:
+                linear-gradient(rgba(124,92,255,0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124,92,255,0.045) 1px, transparent 1px);
+            background-size: 52px 52px;
+        }
+    `;
+    document.head.appendChild(el);
+}
+
+// ─── Helper: spread className only on web ─────────────────────────────────────
+const wc = (...classes: string[]) =>
+    Platform.OS === 'web' ? ({ className: classes.join(' ') } as any) : {};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
-    const [step, setStep] = useState<Step>('landing');
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [step, setStep]             = useState<Step>('landing');
+    const [email, setEmail]           = useState('');
+    const [loading, setLoading]       = useState(false);
+    const [error, setError]           = useState('');
+    const [typeText, setTypeText]     = useState('');
+    const [emailFocused, setFocused]  = useState(false);
 
-    const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.vercel.app';
-    const CALLBACK_URL = `${SITE_URL}/auth/callback`;
+    // Animated values
+    const logoOpacity   = useRef(new Animated.Value(0)).current;
+    const logoY         = useRef(new Animated.Value(20)).current;
+    const cardOpacity   = useRef(new Animated.Value(0)).current;
+    const cardY         = useRef(new Animated.Value(56)).current;
+    const fieldsOpacity = useRef(new Animated.Value(0)).current;
+    const btnsOpacity   = useRef(new Animated.Value(0)).current;
+    const pulse         = useRef(new Animated.Value(1)).current;
+    const borderGlow    = useRef(new Animated.Value(0)).current;
+    const googleScale   = useRef(new Animated.Value(1)).current;
+    const magicScale    = useRef(new Animated.Value(1)).current;
+    const submitScale   = useRef(new Animated.Value(1)).current;
+    const orb1Y         = useRef(new Animated.Value(0)).current;
+    const orb2Y         = useRef(new Animated.Value(0)).current;
 
+    // ── Typewriter ──
+    useEffect(() => {
+        let i = 0;
+        setTypeText('');
+        const id = setInterval(() => {
+            i++;
+            setTypeText(TAGLINE.slice(0, i));
+            if (i >= TAGLINE.length) clearInterval(id);
+        }, 52);
+        return () => clearInterval(id);
+    }, []);
+
+    // ── Staggered entrance ──
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(logoOpacity, { toValue: 1, duration: 700, delay: 250, useNativeDriver: true }),
+            Animated.spring(logoY,       { toValue: 0, speed: 14, bounciness: 6, delay: 250, useNativeDriver: true }),
+        ]).start();
+
+        Animated.parallel([
+            Animated.timing(cardOpacity, { toValue: 1, duration: 600, delay: 750, useNativeDriver: true }),
+            Animated.spring(cardY,       { toValue: 0, speed: 10, bounciness: 10, delay: 750, useNativeDriver: true }),
+        ]).start();
+
+        Animated.timing(fieldsOpacity, { toValue: 1, duration: 500, delay: 1100, useNativeDriver: true }).start();
+        Animated.timing(btnsOpacity,   { toValue: 1, duration: 500, delay: 1300, useNativeDriver: true }).start();
+    }, []);
+
+    // ── Heartbeat pulse ──
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulse, { toValue: 1.45, duration: 350, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+                Animated.timing(pulse, { toValue: 1.0,  duration: 350, easing: Easing.in(Easing.quad),  useNativeDriver: true }),
+                Animated.delay(1000),
+            ])
+        ).start();
+    }, []);
+
+    // ── Native orb float (CSS handles it on web) ──
+    useEffect(() => {
+        if (Platform.OS === 'web') return;
+        const fl = (v: Animated.Value, a: number, b: number, d1: number, d2: number) =>
+            Animated.loop(Animated.sequence([
+                Animated.timing(v, { toValue: a, duration: d1, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+                Animated.timing(v, { toValue: b, duration: d2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+            ])).start();
+        fl(orb1Y, -24,  16, 4000, 4500);
+        fl(orb2Y,  20, -16, 4800, 3800);
+    }, []);
+
+    // ── Input border glow ──
+    useEffect(() => {
+        Animated.timing(borderGlow, {
+            toValue: emailFocused ? 1 : 0,
+            duration: 260, useNativeDriver: false,
+        }).start();
+    }, [emailFocused]);
+
+    const borderColor = borderGlow.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(255,255,255,0.14)', 'rgba(124,92,255,0.85)'],
+    });
+
+    // ── Button micro-interactions ──
+    const pressIn  = (v: Animated.Value) => Animated.spring(v, { toValue: 0.955, useNativeDriver: true }).start();
+    const pressOut = (v: Animated.Value) => Animated.spring(v, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+
+    // ── Auth handlers ──────────────────────────────────────────────────────────
     const signInWithGoogle = async () => {
-        setLoading(true);
-        setError('');
+        setLoading(true); setError('');
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: CALLBACK_URL,
-            },
+            options: { redirectTo: CALLBACK_URL },
         });
         setLoading(false);
         if (err) setError(err.message);
     };
 
     const sendOtp = async () => {
-        if (!email.trim()) {
-            setError('Please enter your email address.');
-            return;
-        }
-        setLoading(true);
-        setError('');
+        if (!email.trim()) { setError('Please enter your email address.'); return; }
+        setLoading(true); setError('');
         const { error: err } = await supabase.auth.signInWithOtp({
             email: email.trim(),
-            options: {
-                emailRedirectTo: CALLBACK_URL,
-            },
+            options: { emailRedirectTo: CALLBACK_URL },
         });
         setLoading(false);
-        if (err) {
-            setError(err.message);
-        } else {
-            setStep('otp');
-        }
+        if (err) setError(err.message);
+        else setStep('otp');
     };
 
-    const resendOtp = async () => {
-        setError('');
-        await sendOtp();
-    };
-
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <View style={styles.glow} />
+        <View style={[s.root, Platform.OS !== 'web' && { backgroundColor: '#0e0820' }]}
+              {...wc('fo-bg')}>
 
-            <View style={styles.logoBox}>
-                <Text style={styles.logoIcon}>◎</Text>
-            </View>
-
-            <Text style={styles.title}>FlowOptix</Text>
-            <Text style={styles.tagline}>Workflow Intelligence System</Text>
-
-            {step === 'landing' && (
-                <>
-                    <Text style={styles.desc}>
-                        Observe your workflow. Detect patterns.{'\n'}
-                        Get AI-powered automation suggestions.
-                    </Text>
-
-                    <TouchableOpacity style={styles.googleBtn} onPress={signInWithGoogle}>
-                        <Text style={styles.googleG}>G</Text>
-                        <Text style={styles.googleText}>Continue with Google</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.emailBtn}
-                        onPress={() => { setError(''); setStep('email'); }}
-                    >
-                        <Text style={styles.emailText}>Sign in with email</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.terms}>
-                        By continuing, you agree to our{' '}
-                        <Text style={styles.link}>Terms</Text> &{' '}
-                        <Text style={styles.link}>Privacy Policy</Text>
-                    </Text>
-                </>
+            {/* Grid lines — web only */}
+            {Platform.OS === 'web' && (
+                <View style={s.grid} pointerEvents="none" {...wc('fo-grid')} />
             )}
 
-            {step === 'email' && (
-                <View style={styles.formBox}>
-                    <Text style={styles.formTitle}>Enter your email</Text>
-                    <Text style={styles.formDesc}>
-                        We'll send a one-time code to verify your identity.
-                    </Text>
+            {/* Floating orbs */}
+            <Animated.View style={[s.orb, s.orb1, { transform: [{ translateY: orb1Y }] }]} {...wc('fo-orb1')} />
+            <Animated.View style={[s.orb, s.orb2, { transform: [{ translateY: orb2Y }] }]} {...wc('fo-orb2')} />
+            <View          style={[s.orb, s.orb3]}                                          {...wc('fo-orb3')} />
 
-                    <TextInput
-                        style={styles.input}
-                        placeholder="you@example.com"
-                        placeholderTextColor="#4A4A5A"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        value={email}
-                        onChangeText={(t: string) => { setEmail(t); setError(''); }}
-                        editable={!loading}
-                    />
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
+                <ScrollView
+                    contentContainerStyle={s.scroll}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    {/* ────────── LOGO ────────── */}
+                    <Animated.View style={[s.logoSection, {
+                        opacity: logoOpacity,
+                        transform: [{ translateY: logoY }],
+                    }]}>
 
-                    <TouchableOpacity
-                        style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                        onPress={sendOtp}
-                        disabled={loading}
-                    >
-                        {loading
-                            ? <ActivityIndicator color="#fff" />
-                            : <Text style={styles.primaryBtnText}>Send OTP</Text>
-                        }
-                    </TouchableOpacity>
+                        <View style={s.logoRow}>
+                            {/* Heartbeat dot */}
+                            <Animated.View style={[s.pulseWrap, { transform: [{ scale: pulse }] }]}>
+                                <View style={s.pulseDot} />
+                                <View style={s.pulseRing} />
+                            </Animated.View>
 
-                    <TouchableOpacity onPress={() => { setError(''); setStep('landing'); }}>
-                        <Text style={styles.backText}>← Back</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+                            {/* Title — CSS shimmer on web, tinted on native */}
+                            {Platform.OS === 'web'
+                                ? <Text style={s.titleBase} {...wc('fo-shimmer')}>FlowOptix</Text>
+                                : <Text style={[s.titleBase, s.titleNative]}>FlowOptix</Text>
+                            }
+                        </View>
 
-            {step === 'otp' && (
-                <View style={styles.formBox}>
-                    <Text style={styles.formTitle}>Check your inbox</Text>
-                    <Text style={styles.formDesc}>
-                        We sent a sign-in link to{'\n'}
-                        <Text style={styles.emailHighlight}>{email}</Text>
-                    </Text>
-
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoText}>
-                            Open the email and tap <Text style={styles.infoHighlight}>"Confirm your mail"</Text> — you'll be signed in automatically.
+                        {/* Typewriter */}
+                        <Text style={s.tagline}>
+                            {typeText}
+                            <Text style={s.cursor}>|</Text>
                         </Text>
-                    </View>
+                    </Animated.View>
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                    <TouchableOpacity
-                        style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                        onPress={resendOtp}
-                        disabled={loading}
+                    {/* ────────── GLASS CARD ────────── */}
+                    <Animated.View
+                        style={[
+                            s.card,
+                            { opacity: cardOpacity, transform: [{ translateY: cardY }] },
+                            Platform.OS !== 'web' && s.cardNative,
+                        ]}
+                        {...wc('fo-glass', 'fo-card-hover')}
                     >
-                        {loading
-                            ? <ActivityIndicator color="#fff" />
-                            : <Text style={styles.primaryBtnText}>Resend link</Text>
-                        }
-                    </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => { setError(''); setStep('email'); }}>
-                        <Text style={[styles.backText, { marginTop: 8 }]}>← Change email</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+                        {/* Dynamic heading by step */}
+                        <Text style={s.cardTitle}>
+                            {step === 'landing' ? 'Welcome back' :
+                             step === 'email'   ? 'Enter your email' :
+                                                  'Check your inbox'}
+                        </Text>
+                        <Text style={s.cardSub}>
+                            {step === 'landing' ? 'Sign in to continue your flow' :
+                             step === 'email'   ? "We'll send a magic link — no password needed" :
+                                                  `Magic link sent to ${email}`}
+                        </Text>
 
-            <Text style={styles.footer}>v1.0.0 · Built with AI</Text>
-        </KeyboardAvoidingView>
+                        {/* ── LANDING ── */}
+                        {step === 'landing' && (
+                            <Animated.View style={[s.btnGroup, { opacity: btnsOpacity }]}>
+
+                                {/* Google */}
+                                <Pressable
+                                    onPressIn={() => pressIn(googleScale)}
+                                    onPressOut={() => pressOut(googleScale)}
+                                    onPress={signInWithGoogle}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Animated.View
+                                        style={[s.googleBtn, { transform: [{ scale: googleScale }] }]}
+                                        {...wc('fo-google-btn')}
+                                    >
+                                        <Text style={s.gIcon}>G</Text>
+                                        <Text style={s.googleText}>Continue with Google</Text>
+                                    </Animated.View>
+                                </Pressable>
+
+                                <View style={s.divider}>
+                                    <View style={s.divLine} />
+                                    <Text style={s.divLabel}>or</Text>
+                                    <View style={s.divLine} />
+                                </View>
+
+                                {/* Email entry */}
+                                <Pressable
+                                    onPressIn={() => pressIn(magicScale)}
+                                    onPressOut={() => pressOut(magicScale)}
+                                    onPress={() => { setError(''); setStep('email'); }}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Animated.View
+                                        style={[s.magicBtn, { transform: [{ scale: magicScale }] }]}
+                                        {...wc('fo-magic-btn')}
+                                    >
+                                        <Ionicons name="mail-outline" size={17} color="#a78bff" style={{ marginRight: 9 }} />
+                                        <Text style={s.magicText}>Sign in with Email</Text>
+                                    </Animated.View>
+                                </Pressable>
+
+                                <Text style={s.termsText}>
+                                    No password. By continuing you agree to our{' '}
+                                    <Text style={s.termLink}>Terms</Text>
+                                    {' '}&amp;{' '}
+                                    <Text style={s.termLink}>Privacy Policy</Text>.
+                                </Text>
+                            </Animated.View>
+                        )}
+
+                        {/* ── EMAIL ── */}
+                        {step === 'email' && (
+                            <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+
+                                <Animated.View style={[s.inputWrap, { borderBottomColor: borderColor }]}>
+                                    <Ionicons
+                                        name="mail-outline"
+                                        size={16}
+                                        color={emailFocused ? '#7C5CFF' : 'rgba(160,160,180,0.45)'}
+                                        style={{ marginRight: 10 }}
+                                    />
+                                    <TextInput
+                                        style={s.input}
+                                        placeholder="you@example.com"
+                                        placeholderTextColor="rgba(160,160,180,0.45)"
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        value={email}
+                                        onChangeText={t => { setEmail(t); setError(''); }}
+                                        onFocus={() => setFocused(true)}
+                                        onBlur={() => setFocused(false)}
+                                        editable={!loading}
+                                        {...(Platform.OS === 'web' ? wc('fo-input-native') : {})}
+                                    />
+                                </Animated.View>
+
+                                {!!error && <Text style={s.errText}>{error}</Text>}
+
+                                <Pressable
+                                    onPressIn={() => pressIn(submitScale)}
+                                    onPressOut={() => pressOut(submitScale)}
+                                    onPress={sendOtp}
+                                    disabled={loading}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Animated.View
+                                        style={[s.submitBtn, loading && s.btnDisabled, { transform: [{ scale: submitScale }] }]}
+                                        {...wc('fo-submit-btn')}
+                                    >
+                                        {loading ? (
+                                            <ActivityIndicator color="#fff" size="small" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="send-outline" size={15} color="#fff" style={{ marginRight: 8 }} />
+                                                <Text style={s.submitText}>Send Magic Link</Text>
+                                            </>
+                                        )}
+                                    </Animated.View>
+                                </Pressable>
+
+                                <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
+                                    <Text style={s.backText}>← Back</Text>
+                                </Pressable>
+                            </Animated.View>
+                        )}
+
+                        {/* ── OTP ── */}
+                        {step === 'otp' && (
+                            <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+
+                                <View style={s.infoBox}>
+                                    <Text style={s.infoEmoji}>📬</Text>
+                                    <Text style={s.infoText}>
+                                        Open the email and tap{' '}
+                                        <Text style={s.infoHL}>"Confirm your mail"</Text>
+                                        {' '}— you'll be signed in automatically.
+                                    </Text>
+                                </View>
+
+                                {!!error && <Text style={s.errText}>{error}</Text>}
+
+                                <Pressable
+                                    onPressIn={() => pressIn(submitScale)}
+                                    onPressOut={() => pressOut(submitScale)}
+                                    onPress={sendOtp}
+                                    disabled={loading}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Animated.View style={[s.submitBtn, s.submitSecondary, { transform: [{ scale: submitScale }] }]}>
+                                        {loading
+                                            ? <ActivityIndicator color="#fff" size="small" />
+                                            : <Text style={s.submitText}>Resend link</Text>
+                                        }
+                                    </Animated.View>
+                                </Pressable>
+
+                                <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap}>
+                                    <Text style={s.backText}>← Change email</Text>
+                                </Pressable>
+                            </Animated.View>
+                        )}
+
+                    </Animated.View>
+
+                    {/* Footer */}
+                    <Text style={s.footer}>FlowOptix · v1.0 · Powered by AI</Text>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0A0A0F',
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+    root:      { flex: 1 },
+    flex:      { flex: 1 },
+    grid:      { ...StyleSheet.absoluteFillObject },
+    scroll:    {
+        flexGrow: 1, alignItems: 'center', justifyContent: 'center',
+        paddingHorizontal: 20, paddingVertical: 64,
+    },
+
+    // Orbs
+    orb: { position: 'absolute', borderRadius: 9999 },
+    orb1: { width: 400, height: 400, top: -120, left: -140,  backgroundColor: 'rgba(108,43,217,0.32)' },
+    orb2: { width: 320, height: 320, bottom: 40, right: -100, backgroundColor: 'rgba(13,115,119,0.28)' },
+    orb3: { width: 260, height: 260, top: '40%', left: '30%', backgroundColor: 'rgba(74,26,138,0.22)' },
+
+    // Logo
+    logoSection: { alignItems: 'center', marginBottom: 44 },
+    logoRow:     { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+    pulseWrap:   { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+    pulseDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7C5CFF' },
+    pulseRing:   {
+        position: 'absolute', width: 20, height: 20, borderRadius: 10,
+        borderWidth: 1.5, borderColor: 'rgba(124,92,255,0.45)',
+    },
+    titleBase: {
+        fontSize: 48, fontWeight: '900', letterSpacing: -1.5,
+        includeFontPadding: false,
+    },
+    titleNative: { color: '#b48aff' },
+    tagline:  { fontSize: 15, color: 'rgba(200,200,220,0.65)', letterSpacing: 0.2, textAlign: 'center' },
+    cursor:   { color: '#7C5CFF', fontWeight: '200' },
+
+    // Card
+    card: {
+        width: '100%', maxWidth: 420,
+        borderRadius: 28, padding: 36,
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 28,
+        shadowColor: '#4a1a8a', shadowOffset: { width: 0, height: 24 },
+        shadowOpacity: 0.45, shadowRadius: 48, elevation: 24,
     },
-    glow: {
-        position: 'absolute',
-        top: '20%',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: 'rgba(124, 92, 255, 0.15)',
-    },
-    logoBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
-        backgroundColor: '#7C5CFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
-    },
-    logoIcon: {
-        fontSize: 40,
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    title: {
-        fontSize: 42,
-        fontWeight: 'bold',
-        color: '#F5F5F7',
-        letterSpacing: -1,
-        marginBottom: 6,
-    },
-    tagline: {
-        fontSize: 14,
-        color: '#6A6A7A',
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        marginBottom: 24,
-    },
-    desc: {
-        fontSize: 15,
-        color: '#A0A0B0',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 40,
-    },
+    cardNative: { backgroundColor: 'rgba(18,12,40,0.88)' },
+    cardTitle:  { fontSize: 26, fontWeight: '700', color: '#f5f5f7', marginBottom: 8, textAlign: 'center' },
+    cardSub:    { fontSize: 14, color: 'rgba(160,160,180,0.75)', marginBottom: 30, textAlign: 'center', lineHeight: 20 },
+
+    // Button groups
+    btnGroup:  { width: '100%', alignItems: 'center' },
+    formGroup: { width: '100%', alignItems: 'center' },
+
+    // Google button
     googleBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 14,
-        marginBottom: 12,
-        gap: 12,
+        width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 15, borderRadius: 16,
+        borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.16)',
+        backgroundColor: 'rgba(255,255,255,0.07)',
+        gap: 12, marginBottom: 18,
     },
-    googleG: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4285F4',
+    gIcon:      { fontSize: 21, fontWeight: '700', color: '#5b9cf6' },
+    googleText: { fontSize: 15, fontWeight: '600', color: '#f5f5f7' },
+
+    // Divider
+    divider: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 18 },
+    divLine:  { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.09)' },
+    divLabel: { color: 'rgba(155,155,175,0.6)', marginHorizontal: 14, fontSize: 12 },
+
+    // Magic link / email button
+    magicBtn: {
+        width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 15, borderRadius: 16,
+        borderWidth: 1, borderColor: 'rgba(124,92,255,0.28)',
+        backgroundColor: 'rgba(124,92,255,0.09)',
+        marginBottom: 22,
     },
-    googleText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1A1A1A',
-    },
-    emailBtn: {
-        width: '100%',
-        paddingVertical: 16,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: '#2A2A38',
-        backgroundColor: '#14141C',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    emailText: {
-        fontSize: 15,
-        color: '#F5F5F7',
-        fontWeight: '500',
-    },
-    terms: {
-        fontSize: 12,
-        color: '#6A6A7A',
-        textAlign: 'center',
-        lineHeight: 18,
-    },
-    link: {
-        color: '#7C5CFF',
-        textDecorationLine: 'underline',
-    },
-    formBox: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    formTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#F5F5F7',
-        marginBottom: 8,
-    },
-    formDesc: {
-        fontSize: 14,
-        color: '#A0A0B0',
-        textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: 24,
-    },
-    emailHighlight: {
-        color: '#7C5CFF',
-        fontWeight: '600',
+    magicText: { fontSize: 15, fontWeight: '600', color: '#c4a0ff' },
+
+    // Input
+    inputWrap: {
+        width: '100%', flexDirection: 'row', alignItems: 'center',
+        borderBottomWidth: 1.5, paddingBottom: 12, marginBottom: 6, marginTop: 4,
     },
     input: {
-        width: '100%',
-        backgroundColor: '#14141C',
-        borderWidth: 1,
-        borderColor: '#2A2A38',
-        borderRadius: 12,
-        paddingVertical: 16,
-        paddingHorizontal: 18,
-        color: '#F5F5F7',
-        fontSize: 16,
-        marginBottom: 12,
+        flex: 1, color: '#f5f5f7', fontSize: 15,
+        paddingVertical: Platform.OS === 'ios' ? 4 : 0,
     },
-    otpInput: {
-        letterSpacing: 8,
-        fontSize: 24,
-        fontWeight: '700',
-        textAlign: 'center',
+
+    // Submit button
+    submitBtn: {
+        width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#7C5CFF', paddingVertical: 16, borderRadius: 16,
+        marginTop: 22, marginBottom: 6,
+        shadowColor: '#7C5CFF', shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.45, shadowRadius: 20, elevation: 10,
     },
-    errorText: {
-        color: '#FF6B6B',
-        fontSize: 13,
-        marginBottom: 12,
-        textAlign: 'center',
+    submitSecondary: { backgroundColor: 'rgba(124,92,255,0.55)' },
+    btnDisabled:     { opacity: 0.65 },
+    submitText:      { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+    // Back
+    backWrap: { marginTop: 10, paddingVertical: 8, width: '100%', alignItems: 'center' },
+    backText: { color: '#7C5CFF', fontSize: 14, fontWeight: '500' },
+
+    // Error
+    errText: { color: '#ff6b6b', fontSize: 13, marginTop: 8, marginBottom: 4, textAlign: 'center' },
+
+    // Info box (OTP)
+    infoBox:  {
+        width: '100%', borderRadius: 18, padding: 22, marginBottom: 22,
+        borderWidth: 1, borderColor: 'rgba(124,92,255,0.18)',
+        backgroundColor: 'rgba(124,92,255,0.06)',
     },
-    primaryBtn: {
-        width: '100%',
-        backgroundColor: '#7C5CFF',
-        paddingVertical: 16,
-        borderRadius: 14,
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    btnDisabled: {
-        opacity: 0.6,
-    },
-    primaryBtnText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    backText: {
-        color: '#7C5CFF',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    infoBox: {
-        width: '100%',
-        backgroundColor: '#14141C',
-        borderWidth: 1,
-        borderColor: '#2A2A38',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 20,
-    },
-    infoText: {
-        color: '#A0A0B0',
-        fontSize: 14,
-        lineHeight: 20,
-        textAlign: 'center',
-    },
-    infoHighlight: {
-        color: '#7C5CFF',
-        fontWeight: '600',
-    },
-    footer: {
-        position: 'absolute',
-        bottom: 40,
-        fontSize: 11,
-        color: '#3A3A4A',
-        letterSpacing: 1,
-    },
+    infoEmoji: { fontSize: 36, textAlign: 'center', marginBottom: 12 },
+    infoText:  { color: 'rgba(190,190,210,0.9)', fontSize: 14, lineHeight: 21, textAlign: 'center' },
+    infoHL:    { color: '#c4a0ff', fontWeight: '600' },
+
+    // Terms
+    termsText: { fontSize: 12, color: 'rgba(140,140,160,0.65)', textAlign: 'center', lineHeight: 17, marginTop: 4 },
+    termLink:  { color: '#9B77FF', textDecorationLine: 'underline' },
+
+    // Footer
+    footer: { fontSize: 11, color: 'rgba(100,100,120,0.55)', letterSpacing: 0.5, marginTop: 40, textAlign: 'center' },
 });
