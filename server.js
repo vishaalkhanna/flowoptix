@@ -1,7 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 const supabase = require('./supabaseClient');
+
+// Service-role client bypasses RLS — used only for server-side writes like OAuth token storage.
+// Falls back to anon client if SUPABASE_SERVICE_ROLE_KEY is not set (will fail RLS).
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(
+        process.env.SUPABASE_URL.trim(),
+        process.env.SUPABASE_SERVICE_ROLE_KEY.trim(),
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+    : supabase;
 const { detectPatterns, calculateProductivityScore } = require('./patternDetection');
 const { analyzePatternWithAI, getProductivityInsight } = require('./aiEngine');
 const { sendEmail, openApp, executeAutomation, generateTaskReport, logToSupabase } = require('./executionEngine');
@@ -316,9 +327,12 @@ app.get('/gmail/authorize', (req, res) => {
 
 app.get('/gmail/callback', async (req, res) => {
     const { code, state: user_id } = req.query;
+    console.log('[gmail/callback] received — user_id:', user_id, 'code present:', !!code);
     try {
         const tokens = await exchangeGoogleCode(code, `${SELF_URL}/gmail/callback`);
-        await supabase.from('user_integrations').upsert({
+        console.log('[gmail/callback] token exchange OK — access_token present:', !!tokens.access_token);
+
+        const { error: upsertError } = await supabaseAdmin.from('user_integrations').upsert({
             user_id,
             integration_type: 'gmail',
             access_token: tokens.access_token,
@@ -327,8 +341,16 @@ app.get('/gmail/callback', async (req, res) => {
             is_connected: true,
             connected_at: new Date().toISOString(),
         }, { onConflict: 'user_id,integration_type' });
+
+        if (upsertError) {
+            console.error('[gmail/callback] UPSERT FAILED:', upsertError);
+            return res.redirect(`${APP_URL}?gmail_error=${encodeURIComponent(upsertError.message)}`);
+        }
+
+        console.log('[gmail/callback] token saved to user_integrations for user:', user_id);
         res.redirect(`${APP_URL}?gmail_connected=1`);
     } catch (err) {
+        console.error('[gmail/callback] EXCEPTION:', err);
         res.redirect(`${APP_URL}?gmail_error=${encodeURIComponent(err.message)}`);
     }
 });
@@ -416,9 +438,12 @@ app.get('/calendar/authorize', (req, res) => {
 
 app.get('/calendar/callback', async (req, res) => {
     const { code, state: user_id } = req.query;
+    console.log('[calendar/callback] received — user_id:', user_id, 'code present:', !!code);
     try {
         const tokens = await exchangeGoogleCode(code, `${SELF_URL}/calendar/callback`);
-        await supabase.from('user_integrations').upsert({
+        console.log('[calendar/callback] token exchange OK — access_token present:', !!tokens.access_token);
+
+        const { error: upsertError } = await supabaseAdmin.from('user_integrations').upsert({
             user_id,
             integration_type: 'calendar',
             access_token: tokens.access_token,
@@ -427,8 +452,16 @@ app.get('/calendar/callback', async (req, res) => {
             is_connected: true,
             connected_at: new Date().toISOString(),
         }, { onConflict: 'user_id,integration_type' });
+
+        if (upsertError) {
+            console.error('[calendar/callback] UPSERT FAILED:', upsertError);
+            return res.redirect(`${APP_URL}?calendar_error=${encodeURIComponent(upsertError.message)}`);
+        }
+
+        console.log('[calendar/callback] token saved to user_integrations for user:', user_id);
         res.redirect(`${APP_URL}?calendar_connected=1`);
     } catch (err) {
+        console.error('[calendar/callback] EXCEPTION:', err);
         res.redirect(`${APP_URL}?calendar_error=${encodeURIComponent(err.message)}`);
     }
 });
