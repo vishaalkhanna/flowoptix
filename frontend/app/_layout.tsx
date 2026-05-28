@@ -12,29 +12,44 @@ export default function RootLayout() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const inTabs = segmentsRef.current[0] === '(tabs)';
-      if (session && !inTabs) {
-        router.replace('/(tabs)');
-      } else if (!session && inTabs) {
-        router.replace('/login');
+    const isCallback = (segments[0] as string) === 'auth';
+
+    // Hard 3-second timeout — the spinner must never hang forever
+    const timer = setTimeout(() => {
+      setInitialized(prev => {
+        if (!prev) router.replace('/login');
+        return true;
+      });
+    }, 3000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // INITIAL_SESSION fires immediately on subscription using local storage —
+      // no network call, so it's reliable even when Supabase is unreachable.
+      if (event === 'INITIAL_SESSION') {
+        clearTimeout(timer);
+        if (isCallback) {
+          // auth/callback page processes the OAuth token itself; don't redirect
+          setInitialized(true);
+        } else if (session) {
+          router.replace('/(tabs)');
+          setInitialized(true);
+        } else {
+          router.replace('/login');
+          setInitialized(true);
+        }
+        return;
       }
+
+      // Subsequent changes: login, logout, token refresh
+      const inTabs = segmentsRef.current[0] === '(tabs)';
+      if (session && !inTabs) router.replace('/(tabs)');
+      else if (!session && inTabs) router.replace('/login');
     });
 
-    // On /auth/callback the page itself handles the redirect after
-    // extracting the OAuth token from the URL hash. Calling getSession()
-    // here would see no session yet and wrongly send the user to /login.
-    if ((segments[0] as string) !== 'auth') {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) router.replace('/(tabs)');
-        else router.replace('/login');
-        setInitialized(true);
-      });
-    } else {
-      setInitialized(true);
-    }
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   if (!initialized) {
