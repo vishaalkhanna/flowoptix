@@ -47,14 +47,15 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
             50%     { border-color: rgba(124,92,255,0.35); }
         }
         .fo-bg {
-            background: linear-gradient(-45deg, #6C2BD9, #1a1a2e, #0d4f6e, #16213e, #4a1a8a);
-            background-size: 400% 400%;
-            animation: meshMove 16s ease infinite;
+            background-color: #0a0a0f;
+            background-image: radial-gradient(ellipse 60% 50% at 15% 20%, rgba(108,43,217,0.30) 0%, transparent 70%),
+                              radial-gradient(ellipse 55% 45% at 85% 80%, rgba(30,58,95,0.25) 0%, transparent 70%),
+                              radial-gradient(ellipse 50% 40% at 50% 50%, rgba(13,79,79,0.18) 0%, transparent 70%);
         }
         .fo-shimmer {
             background: linear-gradient(
                 90deg,
-                #c4a0ff 0%, #06B6D4 25%, #ffffff 48%, #06B6D4 72%, #c4a0ff 100%
+                #ffffff 0%, #a78bff 30%, #ffffff 50%, #a78bff 70%, #ffffff 100%
             );
             background-size: 200% auto;
             -webkit-background-clip: text;
@@ -110,8 +111,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         .fo-input-native::placeholder { color: rgba(160,160,180,0.45) !important; }
         .fo-grid {
             background-image:
-                linear-gradient(rgba(124,92,255,0.045) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(124,92,255,0.045) 1px, transparent 1px);
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
             background-size: 52px 52px;
         }
     `;
@@ -239,7 +240,7 @@ export default function LoginScreen() {
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <View style={[s.root, Platform.OS !== 'web' && { backgroundColor: '#0e0820' }]}
+        <View style={[s.root, Platform.OS !== 'web' && { backgroundColor: '#0a0a0f' }]}
               {...wc('fo-bg')}>
 
             {/* Grid lines — web only */}
@@ -345,7 +346,7 @@ export default function LoginScreen() {
                                         style={[s.magicBtn, { transform: [{ scale: magicScale }] }]}
                                         {...wc('fo-magic-btn')}
                                     >
-                                        <Ionicons name="mail-outline" size={17} color="#a78bff" style={{ marginRight: 9 }} />
+                                        <Ionicons name="mail-outline" size={17} color="rgba(255,255,255,0.7)" style={{ marginRight: 9 }} />
                                         <Text style={s.magicText}>Sign in with Email</Text>
                                     </Animated.View>
                                 </Pressable>
@@ -367,13 +368,13 @@ export default function LoginScreen() {
                                     <Ionicons
                                         name="mail-outline"
                                         size={16}
-                                        color={emailFocused ? '#7C5CFF' : 'rgba(160,160,180,0.45)'}
+                                        color={emailFocused ? '#7C5CFF' : 'rgba(255,255,255,0.3)'}
                                         style={{ marginRight: 10 }}
                                     />
                                     <TextInput
                                         style={s.input}
                                         placeholder="you@example.com"
-                                        placeholderTextColor="rgba(160,160,180,0.45)"
+                                        placeholderTextColor="rgba(255,255,255,0.3)"
                                         keyboardType="email-address"
                                         autoCapitalize="none"
                                         autoCorrect={false}
@@ -475,9 +476,9 @@ const s = StyleSheet.create({
 
     // Orbs
     orb: { position: 'absolute', borderRadius: 9999 },
-    orb1: { width: 400, height: 400, top: -120, left: -140,  backgroundColor: 'rgba(108,43,217,0.32)' },
-    orb2: { width: 320, height: 320, bottom: 40, right: -100, backgroundColor: 'rgba(13,115,119,0.28)' },
-    orb3: { width: 260, height: 260, top: '40%', left: '30%', backgroundColor: 'rgba(74,26,138,0.22)' },
+    orb1: { width: 500, height: 500, top: -160, left: -180,  backgroundColor: 'rgba(108,43,217,0.18)' },
+    orb2: { width: 400, height: 400, bottom: 20, right: -130, backgroundColor: 'rgba(30,58,95,0.15)' },
+    orb3: { width: 300, height: 300, top: '40%', left: '30%', backgroundColor: 'rgba(13,79,79,0.12)' },
 
     // Logo
     logoSection: { alignItems: 'center', marginBottom: 44 },
@@ -492,8 +493,8 @@ const s = StyleSheet.create({
         fontSize: 48, fontWeight: '900', letterSpacing: -1.5,
         includeFontPadding: false,
     },
-    titleNative: { color: '#b48aff' },
-    tagline:  { fontSize: 15, color: 'rgba(200,200,220,0.65)', letterSpacing: 0.2, textAlign: 'center' },
+    titleNative: { color: '#ffffff' },
+    tagline:  { fontSize: 15, color: '#888888', letterSpacing: 0.2, textAlign: 'center' },
     cursor:   { color: '#7C5CFF', fontWeight: '200' },
 
     // Card
@@ -505,9 +506,9 @@ const s = StyleSheet.create({
         shadowColor: '#4a1a8a', shadowOffset: { width: 0, height: 24 },
         shadowOpacity: 0.45, shadowRadius: 48, elevation: 24,
     },
-    cardNative: { backgroundColor: 'rgba(18,12,40,0.88)' },
-    cardTitle:  { fontSize: 26, fontWeight: '700', color: '#f5f5f7', marginBottom: 8, textAlign: 'center' },
-    cardSub:    { fontSize: 14, color: 'rgba(160,160,180,0.75)', marginBottom: 30, textAlign: 'center', lineHeight: 20 },
+    cardNative: { backgroundColor: 'rgba(255,255,255,0.05)' },
+    cardTitle:  { fontSize: 26, fontWeight: '700', color: '#ffffff', marginBottom: 8, textAlign: 'center' },
+    cardSub:    { fontSize: 14, color: '#666666', marginBottom: 30, textAlign: 'center', lineHeight: 20 },
 
     // Button groups
     btnGroup:  { width: '100%', alignItems: 'center' },
@@ -517,27 +518,27 @@ const s = StyleSheet.create({
     googleBtn: {
         width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 15, borderRadius: 16,
-        borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.16)',
-        backgroundColor: 'rgba(255,255,255,0.07)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         gap: 12, marginBottom: 18,
     },
-    gIcon:      { fontSize: 21, fontWeight: '700', color: '#5b9cf6' },
-    googleText: { fontSize: 15, fontWeight: '600', color: '#f5f5f7' },
+    gIcon:      { fontSize: 21, fontWeight: '700', color: '#4285F4' },
+    googleText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
 
     // Divider
     divider: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 18 },
-    divLine:  { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.09)' },
-    divLabel: { color: 'rgba(155,155,175,0.6)', marginHorizontal: 14, fontSize: 12 },
+    divLine:  { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+    divLabel: { color: '#555555', marginHorizontal: 14, fontSize: 12 },
 
     // Magic link / email button
     magicBtn: {
         width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 15, borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(124,92,255,0.28)',
-        backgroundColor: 'rgba(124,92,255,0.09)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         marginBottom: 22,
     },
-    magicText: { fontSize: 15, fontWeight: '600', color: '#c4a0ff' },
+    magicText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
 
     // Input
     inputWrap: {
@@ -545,7 +546,7 @@ const s = StyleSheet.create({
         borderBottomWidth: 1.5, paddingBottom: 12, marginBottom: 6, marginTop: 4,
     },
     input: {
-        flex: 1, color: '#f5f5f7', fontSize: 15,
+        flex: 1, color: '#ffffff', fontSize: 15,
         paddingVertical: Platform.OS === 'ios' ? 4 : 0,
     },
 
@@ -575,13 +576,13 @@ const s = StyleSheet.create({
         backgroundColor: 'rgba(124,92,255,0.06)',
     },
     infoEmoji: { fontSize: 36, textAlign: 'center', marginBottom: 12 },
-    infoText:  { color: 'rgba(190,190,210,0.9)', fontSize: 14, lineHeight: 21, textAlign: 'center' },
+    infoText:  { color: '#888888', fontSize: 14, lineHeight: 21, textAlign: 'center' },
     infoHL:    { color: '#c4a0ff', fontWeight: '600' },
 
     // Terms
-    termsText: { fontSize: 12, color: 'rgba(140,140,160,0.65)', textAlign: 'center', lineHeight: 17, marginTop: 4 },
-    termLink:  { color: '#9B77FF', textDecorationLine: 'underline' },
+    termsText: { fontSize: 12, color: '#555555', textAlign: 'center', lineHeight: 17, marginTop: 4 },
+    termLink:  { color: '#7C5CFF', textDecorationLine: 'underline' },
 
     // Footer
-    footer: { fontSize: 11, color: 'rgba(100,100,120,0.55)', letterSpacing: 0.5, marginTop: 40, textAlign: 'center' },
+    footer: { fontSize: 11, color: '#555555', letterSpacing: 0.5, marginTop: 40, textAlign: 'center' },
 });
