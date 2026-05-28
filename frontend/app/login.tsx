@@ -15,142 +15,161 @@ const SITE_URL     = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.
 const CALLBACK_URL = `${SITE_URL}/auth/callback`;
 const TAGLINE      = 'Your productivity intelligence';
 
-// ─── Web-only CSS (injected once at module load) ───────────────────────────────
+// ─── Web CSS ──────────────────────────────────────────────────────────────────
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
     const el = document.createElement('style');
     el.textContent = `
-        @keyframes meshMove {
-            0%   { background-position: 0% 50%; }
-            50%  { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        @keyframes aurora1 {
+            0%,100% { transform: translate(-10%, 0%)  scale(1.0);  opacity: 0.70; }
+            40%     { transform: translate(8%,  -12%) scale(1.18); opacity: 0.95; }
+            70%     { transform: translate(-6%, 8%)   scale(0.92); opacity: 0.75; }
         }
-        @keyframes shimmerSweep {
+        @keyframes aurora2 {
+            0%,100% { transform: translate(12%, 5%)   scale(1.05); opacity: 0.60; }
+            35%     { transform: translate(-10%,-8%)  scale(1.15); opacity: 0.85; }
+            70%     { transform: translate(15%, 4%)   scale(0.95); opacity: 0.65; }
+        }
+        @keyframes aurora3 {
+            0%,100% { transform: translate(0%,  0%)   scale(1.0);  opacity: 0.55; }
+            50%     { transform: translate(-14%,-10%) scale(1.22); opacity: 0.80; }
+        }
+        @keyframes aurora4 {
+            0%,100% { transform: translate(5%,  3%)   scale(1.0);  opacity: 0.45; }
+            40%     { transform: translate(-6%, -6%)  scale(1.12); opacity: 0.70; }
+            75%     { transform: translate(10%, 5%)   scale(0.90); opacity: 0.50; }
+        }
+        @keyframes borderFlow {
+            0%   { background-position: 0%   50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0%   50%; }
+        }
+        @keyframes titleFlow {
             0%   { background-position: -200% center; }
             100% { background-position:  200% center; }
         }
-        @keyframes orbFloat1 {
-            0%,100% { transform: translate(0px, 0px); }
-            40%     { transform: translate(22px, -32px); }
-            70%     { transform: translate(-16px, 14px); }
+        @keyframes pulseDot {
+            0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.8); }
+            60%     { box-shadow: 0 0 0 7px rgba(34,197,94,0);  }
         }
-        @keyframes orbFloat2 {
-            0%,100% { transform: translate(0px, 0px); }
-            35%     { transform: translate(-28px, 22px); }
-            65%     { transform: translate(20px, -20px); }
+        @keyframes sparkle {
+            0%,100% { opacity:1;   transform: scale(1)   rotate(0deg);   }
+            50%     { opacity:0.5; transform: scale(1.4) rotate(180deg); }
         }
-        @keyframes orbFloat3 {
-            0%,100% { transform: translate(0px, 0px); }
-            50%     { transform: translate(24px, -28px); }
+        @keyframes btnShimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position:  200% center; }
         }
-        @keyframes borderPulse {
-            0%,100% { border-color: rgba(255,255,255,0.10); }
-            50%     { border-color: rgba(124,92,255,0.35); }
-        }
-        .fo-bg {
-            background-color: #0a0a0f;
-            background-image: radial-gradient(ellipse 60% 50% at 15% 20%, rgba(108,43,217,0.30) 0%, transparent 70%),
-                              radial-gradient(ellipse 55% 45% at 85% 80%, rgba(30,58,95,0.25) 0%, transparent 70%),
-                              radial-gradient(ellipse 50% 40% at 50% 50%, rgba(13,79,79,0.18) 0%, transparent 70%);
-        }
-        .fo-shimmer {
-            background: linear-gradient(
-                90deg,
-                #ffffff 0%, #a78bff 30%, #ffffff 50%, #a78bff 70%, #ffffff 100%
-            );
+
+        .fo-aurora1 { animation: aurora1 10s ease-in-out infinite; }
+        .fo-aurora2 { animation: aurora2 13s ease-in-out infinite; }
+        .fo-aurora3 { animation: aurora3  8s ease-in-out infinite; }
+        .fo-aurora4 { animation: aurora4 15s ease-in-out infinite; }
+
+        .fo-title {
+            background: linear-gradient(90deg, #A855F7 0%, #EC4899 35%, #06B6D4 65%, #A855F7 100%);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: shimmerSweep 4s linear infinite;
+            animation: titleFlow 4s linear infinite;
         }
-        .fo-orb1 { animation: orbFloat1 10s ease-in-out infinite; }
-        .fo-orb2 { animation: orbFloat2 13s ease-in-out infinite; }
-        .fo-orb3 { animation: orbFloat3  8s ease-in-out infinite; }
-        .fo-glass {
-            background: rgba(255,255,255,0.055) !important;
-            backdrop-filter: blur(28px) saturate(160%) !important;
-            -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+
+        .fo-pulse { animation: pulseDot 2s ease-in-out infinite; }
+        .fo-sparkle { animation: sparkle 2.5s ease-in-out infinite; }
+
+        /* Card — animated gradient border via padding trick */
+        .fo-card-wrap {
+            background: linear-gradient(90deg, #A855F7, #EC4899, #3B82F6, #06B6D4, #A855F7);
+            background-size: 300% 100%;
+            animation: borderFlow 5s linear infinite;
+            border-radius: 22px;
+            padding: 1px;
+            transition: box-shadow 0.4s ease;
         }
-        .fo-card-hover {
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        .fo-card-wrap:hover {
+            box-shadow: 0 0 50px rgba(168,85,247,0.45), 0 0 100px rgba(236,72,153,0.20);
         }
-        .fo-card-hover:hover {
-            border-color: rgba(124,92,255,0.3) !important;
-            box-shadow: 0 24px 64px rgba(108,43,217,0.25) !important;
+
+        /* Google button — gradient bg + shimmer */
+        .fo-google {
+            background: linear-gradient(90deg, #A855F7 0%, #EC4899 40%, #ffffff22 55%, #EC4899 70%, #A855F7 100%);
+            background-size: 200% auto;
+            animation: btnShimmer 3.5s linear infinite;
+            transition: box-shadow 0.25s ease, transform 0.2s ease;
         }
-        .fo-google-btn {
-            transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        .fo-google:hover {
+            box-shadow: 0 0 30px rgba(168,85,247,0.7), 0 0 60px rgba(236,72,153,0.35);
+            transform: scale(1.025);
         }
-        .fo-google-btn:hover {
-            background: rgba(255,255,255,0.12) !important;
-            border-color: rgba(255,255,255,0.28) !important;
-            box-shadow: 0 0 20px rgba(124,92,255,0.18) !important;
+
+        /* Email button — gradient border via wrapper */
+        .fo-email-wrap {
+            background: linear-gradient(90deg, #A855F7, #EC4899, #3B82F6, #06B6D4, #A855F7);
+            background-size: 300% 100%;
+            animation: borderFlow 5s linear infinite;
+            border-radius: 14px;
+            padding: 1px;
+            transition: box-shadow 0.25s ease;
         }
-        .fo-magic-btn {
-            transition: background 0.25s ease, border-color 0.25s ease;
+        .fo-email-wrap:hover {
+            box-shadow: 0 0 20px rgba(168,85,247,0.4);
         }
-        .fo-magic-btn:hover {
-            background: rgba(124,92,255,0.18) !important;
-            border-color: rgba(124,92,255,0.5) !important;
+        .fo-email-inner {
+            background: #111111 !important;
+            border-radius: 13px;
         }
-        .fo-submit-btn {
-            transition: box-shadow 0.2s ease;
+        .fo-email-inner:hover {
+            background: rgba(168,85,247,0.12) !important;
         }
-        .fo-submit-btn:hover {
-            box-shadow: 0 12px 40px rgba(124,92,255,0.55) !important;
-        }
-        .fo-input-native {
+
+        .fo-input {
             background: transparent !important;
-            color: #f5f5f7 !important;
+            color: #ffffff !important;
             border: none !important;
             outline: none !important;
             width: 100%;
             font-size: 15px;
             padding: 0 !important;
         }
-        .fo-input-native::placeholder { color: rgba(160,160,180,0.45) !important; }
-        .fo-grid {
-            background-image:
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 52px 52px;
-        }
+        .fo-input::placeholder { color: rgba(255,255,255,0.28) !important; }
     `;
     document.head.appendChild(el);
 }
 
-// ─── Helper: spread className only on web ─────────────────────────────────────
-const wc = (...classes: string[]) =>
-    Platform.OS === 'web' ? ({ className: classes.join(' ') } as any) : {};
+const wc = (...c: string[]) => Platform.OS === 'web' ? ({ className: c.join(' ') } as any) : {};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
-    const [step, setStep]             = useState<Step>('landing');
-    const [email, setEmail]           = useState('');
-    const [loading, setLoading]       = useState(false);
-    const [error, setError]           = useState('');
-    const [typeText, setTypeText]     = useState('');
-    const [emailFocused, setFocused]  = useState(false);
+    const [step, setStep]           = useState<Step>('landing');
+    const [email, setEmail]         = useState('');
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState('');
+    const [typeText, setTypeText]   = useState('');
+    const [focused, setFocused]     = useState(false);
 
     // Animated values
     const logoOpacity   = useRef(new Animated.Value(0)).current;
-    const logoY         = useRef(new Animated.Value(20)).current;
+    const logoY         = useRef(new Animated.Value(24)).current;
     const cardOpacity   = useRef(new Animated.Value(0)).current;
-    const cardY         = useRef(new Animated.Value(56)).current;
+    const cardY         = useRef(new Animated.Value(60)).current;
     const fieldsOpacity = useRef(new Animated.Value(0)).current;
     const btnsOpacity   = useRef(new Animated.Value(0)).current;
     const pulse         = useRef(new Animated.Value(1)).current;
-    const borderGlow    = useRef(new Animated.Value(0)).current;
+    const borderAnim    = useRef(new Animated.Value(0)).current; // native border color
+    const borderGlow    = useRef(new Animated.Value(0)).current; // input focus
     const googleScale   = useRef(new Animated.Value(1)).current;
-    const magicScale    = useRef(new Animated.Value(1)).current;
+    const emailBtnScale = useRef(new Animated.Value(1)).current;
     const submitScale   = useRef(new Animated.Value(1)).current;
-    const orb1Y         = useRef(new Animated.Value(0)).current;
-    const orb2Y         = useRef(new Animated.Value(0)).current;
+    const aurora1Scale  = useRef(new Animated.Value(1)).current;
+    const aurora2Scale  = useRef(new Animated.Value(1)).current;
+    const aurora3Scale  = useRef(new Animated.Value(1)).current;
+    const aurora1Op     = useRef(new Animated.Value(0.7)).current;
+    const aurora2Op     = useRef(new Animated.Value(0.55)).current;
+    const aurora3Op     = useRef(new Animated.Value(0.45)).current;
 
     // ── Typewriter ──
     useEffect(() => {
         let i = 0;
-        setTypeText('');
         const id = setInterval(() => {
             i++;
             setTypeText(TAGLINE.slice(0, i));
@@ -159,18 +178,16 @@ export default function LoginScreen() {
         return () => clearInterval(id);
     }, []);
 
-    // ── Staggered entrance ──
+    // ── Entrance stagger ──
     useEffect(() => {
         Animated.parallel([
-            Animated.timing(logoOpacity, { toValue: 1, duration: 700, delay: 250, useNativeDriver: true }),
-            Animated.spring(logoY,       { toValue: 0, speed: 14, bounciness: 6, delay: 250, useNativeDriver: true }),
+            Animated.timing(logoOpacity, { toValue: 1, duration: 700, delay: 200, useNativeDriver: true }),
+            Animated.spring(logoY, { toValue: 0, speed: 14, bounciness: 6, delay: 200, useNativeDriver: true }),
         ]).start();
-
         Animated.parallel([
-            Animated.timing(cardOpacity, { toValue: 1, duration: 600, delay: 750, useNativeDriver: true }),
-            Animated.spring(cardY,       { toValue: 0, speed: 10, bounciness: 10, delay: 750, useNativeDriver: true }),
+            Animated.timing(cardOpacity, { toValue: 1, duration: 600, delay: 700, useNativeDriver: true }),
+            Animated.spring(cardY, { toValue: 0, speed: 10, bounciness: 10, delay: 700, useNativeDriver: true }),
         ]).start();
-
         Animated.timing(fieldsOpacity, { toValue: 1, duration: 500, delay: 1100, useNativeDriver: true }).start();
         Animated.timing(btnsOpacity,   { toValue: 1, duration: 500, delay: 1300, useNativeDriver: true }).start();
     }, []);
@@ -179,79 +196,262 @@ export default function LoginScreen() {
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulse, { toValue: 1.45, duration: 350, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-                Animated.timing(pulse, { toValue: 1.0,  duration: 350, easing: Easing.in(Easing.quad),  useNativeDriver: true }),
-                Animated.delay(1000),
+                Animated.timing(pulse, { toValue: 1.5, duration: 340, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+                Animated.timing(pulse, { toValue: 1.0, duration: 340, easing: Easing.in(Easing.quad),  useNativeDriver: true }),
+                Animated.delay(1100),
             ])
         ).start();
     }, []);
 
-    // ── Native orb float (CSS handles it on web) ──
+    // ── Native aurora float ──
     useEffect(() => {
         if (Platform.OS === 'web') return;
-        const fl = (v: Animated.Value, a: number, b: number, d1: number, d2: number) =>
+        const pulse2 = (v: Animated.Value, a: number, b: number, d: number) =>
             Animated.loop(Animated.sequence([
-                Animated.timing(v, { toValue: a, duration: d1, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-                Animated.timing(v, { toValue: b, duration: d2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+                Animated.timing(v, { toValue: a, duration: d,         easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+                Animated.timing(v, { toValue: b, duration: d * 1.2,   easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
             ])).start();
-        fl(orb1Y, -24,  16, 4000, 4500);
-        fl(orb2Y,  20, -16, 4800, 3800);
+        pulse2(aurora1Scale, 1.15, 0.92, 4500);
+        pulse2(aurora2Scale, 0.90, 1.12, 5200);
+        pulse2(aurora3Scale, 1.10, 0.88, 3800);
+        pulse2(aurora1Op, 0.95, 0.55, 4000);
+        pulse2(aurora2Op, 0.80, 0.40, 5500);
+        pulse2(aurora3Op, 0.70, 0.35, 4200);
     }, []);
 
-    // ── Input border glow ──
+    // ── Native animated card border ──
+    useEffect(() => {
+        if (Platform.OS === 'web') return;
+        Animated.loop(
+            Animated.timing(borderAnim, { toValue: 1, duration: 4000, easing: Easing.linear, useNativeDriver: false })
+        ).start();
+    }, []);
+
+    // ── Input focus glow ──
     useEffect(() => {
         Animated.timing(borderGlow, {
-            toValue: emailFocused ? 1 : 0,
-            duration: 260, useNativeDriver: false,
+            toValue: focused ? 1 : 0, duration: 260, useNativeDriver: false,
         }).start();
-    }, [emailFocused]);
+    }, [focused]);
 
-    const borderColor = borderGlow.interpolate({
+    const inputBorderColor = borderGlow.interpolate({
         inputRange: [0, 1],
-        outputRange: ['rgba(255,255,255,0.14)', 'rgba(124,92,255,0.85)'],
+        outputRange: ['rgba(255,255,255,0.15)', '#A855F7'],
+    });
+    const nativeCardBorder = borderAnim.interpolate({
+        inputRange: [0, 0.33, 0.66, 1],
+        outputRange: ['#A855F7', '#EC4899', '#3B82F6', '#A855F7'],
     });
 
-    // ── Button micro-interactions ──
-    const pressIn  = (v: Animated.Value) => Animated.spring(v, { toValue: 0.955, useNativeDriver: true }).start();
+    // ── Button micro ──
+    const pressIn  = (v: Animated.Value) => Animated.spring(v, { toValue: 0.95, useNativeDriver: true }).start();
     const pressOut = (v: Animated.Value) => Animated.spring(v, { toValue: 1, friction: 4, useNativeDriver: true }).start();
 
-    // ── Auth handlers ──────────────────────────────────────────────────────────
+    // ── Auth ──
     const signInWithGoogle = async () => {
         setLoading(true); setError('');
         const { error: err } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: CALLBACK_URL },
+            provider: 'google', options: { redirectTo: CALLBACK_URL },
         });
         setLoading(false);
         if (err) setError(err.message);
     };
 
     const sendOtp = async () => {
-        if (!email.trim()) { setError('Please enter your email address.'); return; }
+        if (!email.trim()) { setError('Please enter your email.'); return; }
         setLoading(true); setError('');
         const { error: err } = await supabase.auth.signInWithOtp({
-            email: email.trim(),
-            options: { emailRedirectTo: CALLBACK_URL },
+            email: email.trim(), options: { emailRedirectTo: CALLBACK_URL },
         });
         setLoading(false);
         if (err) setError(err.message);
         else setStep('otp');
     };
 
-    // ── Render ────────────────────────────────────────────────────────────────
-    return (
-        <View style={[s.root, Platform.OS !== 'web' && { backgroundColor: '#0a0a0f' }]}
-              {...wc('fo-bg')}>
+    // ─── Card inner content (shared between web wrapper and native) ───────────
+    const cardContent = (
+        <>
+            {/* Heading */}
+            <Text style={s.cardTitle}>
+                {step === 'landing' ? 'Welcome back' :
+                 step === 'email'   ? 'Enter your email' : 'Check your inbox'}
+            </Text>
+            <Text style={s.cardSub}>
+                {step === 'landing' ? 'Sign in to continue your flow' :
+                 step === 'email'   ? "We'll send a magic link — no password" :
+                                     `Link sent to ${email}`}
+            </Text>
 
-            {/* Grid lines — web only */}
-            {Platform.OS === 'web' && (
-                <View style={s.grid} pointerEvents="none" {...wc('fo-grid')} />
+            {/* ── LANDING ── */}
+            {step === 'landing' && (
+                <Animated.View style={[s.btnGroup, { opacity: btnsOpacity }]}>
+
+                    {/* Google — gradient on web, purple solid on native */}
+                    <Pressable
+                        onPressIn={() => pressIn(googleScale)}
+                        onPressOut={() => pressOut(googleScale)}
+                        onPress={signInWithGoogle}
+                        style={{ width: '100%' }}
+                    >
+                        <Animated.View
+                            style={[s.googleBtn, { transform: [{ scale: googleScale }] },
+                                    Platform.OS !== 'web' && s.googleBtnNative]}
+                            {...wc('fo-google')}
+                        >
+                            <Text style={s.gIcon}>G</Text>
+                            <Text style={s.googleText}>Continue with Google</Text>
+                        </Animated.View>
+                    </Pressable>
+
+                    <View style={s.divider}>
+                        <View style={s.divLine} />
+                        <Text style={s.divLabel}>or</Text>
+                        <View style={s.divLine} />
+                    </View>
+
+                    {/* Email button — gradient border on web, outlined on native */}
+                    <Pressable
+                        onPressIn={() => pressIn(emailBtnScale)}
+                        onPressOut={() => pressOut(emailBtnScale)}
+                        onPress={() => { setError(''); setStep('email'); }}
+                        style={{ width: '100%' }}
+                    >
+                        <Animated.View style={{ transform: [{ scale: emailBtnScale }], width: '100%' }}>
+                            {Platform.OS === 'web' ? (
+                                <View {...wc('fo-email-wrap')}>
+                                    <View {...wc('fo-email-inner')} style={s.emailBtnInner}>
+                                        <Ionicons name="mail-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
+                                        <Text style={s.emailBtnText}>Sign in with Email</Text>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={s.emailBtnNative}>
+                                    <Ionicons name="mail-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
+                                    <Text style={s.emailBtnText}>Sign in with Email</Text>
+                                </View>
+                            )}
+                        </Animated.View>
+                    </Pressable>
+
+                    <Text style={s.terms}>
+                        No password needed · By continuing you agree to our{' '}
+                        <Text style={s.termLink}>Terms</Text> &amp; <Text style={s.termLink}>Privacy</Text>
+                    </Text>
+                </Animated.View>
             )}
 
-            {/* Floating orbs */}
-            <Animated.View style={[s.orb, s.orb1, { transform: [{ translateY: orb1Y }] }]} {...wc('fo-orb1')} />
-            <Animated.View style={[s.orb, s.orb2, { transform: [{ translateY: orb2Y }] }]} {...wc('fo-orb2')} />
-            <View          style={[s.orb, s.orb3]}                                          {...wc('fo-orb3')} />
+            {/* ── EMAIL ── */}
+            {step === 'email' && (
+                <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+                    <Animated.View style={[s.inputWrap, { borderBottomColor: inputBorderColor }]}>
+                        <Ionicons
+                            name="mail-outline" size={16}
+                            color={focused ? '#A855F7' : 'rgba(255,255,255,0.3)'}
+                            style={{ marginRight: 10 }}
+                        />
+                        <TextInput
+                            style={s.input}
+                            placeholder="you@example.com"
+                            placeholderTextColor="rgba(255,255,255,0.28)"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            value={email}
+                            onChangeText={t => { setEmail(t); setError(''); }}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            editable={!loading}
+                            {...(Platform.OS === 'web' ? wc('fo-input') : {})}
+                        />
+                    </Animated.View>
+
+                    {!!error && <Text style={s.errText}>{error}</Text>}
+
+                    <Pressable
+                        onPressIn={() => pressIn(submitScale)}
+                        onPressOut={() => pressOut(submitScale)}
+                        onPress={sendOtp}
+                        disabled={loading}
+                        style={{ width: '100%' }}
+                    >
+                        <Animated.View style={[s.submitBtn, loading && s.btnDisabled,
+                                               { transform: [{ scale: submitScale }] }]}>
+                            {loading
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <>
+                                    <Ionicons name="send-outline" size={15} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={s.submitText}>Send Magic Link</Text>
+                                  </>
+                            }
+                        </Animated.View>
+                    </Pressable>
+
+                    <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
+                        <Text style={s.backText}>← Back</Text>
+                    </Pressable>
+                </Animated.View>
+            )}
+
+            {/* ── OTP ── */}
+            {step === 'otp' && (
+                <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+                    <View style={s.infoBox}>
+                        <Text style={s.infoEmoji}>📬</Text>
+                        <Text style={s.infoText}>
+                            Open the email and tap{' '}
+                            <Text style={s.infoHL}>"Confirm your mail"</Text>
+                            {' '}— you'll be signed in automatically.
+                        </Text>
+                    </View>
+                    {!!error && <Text style={s.errText}>{error}</Text>}
+                    <Pressable
+                        onPressIn={() => pressIn(submitScale)}
+                        onPressOut={() => pressOut(submitScale)}
+                        onPress={sendOtp}
+                        disabled={loading}
+                        style={{ width: '100%' }}
+                    >
+                        <Animated.View style={[s.submitBtn, s.submitSecondary,
+                                               { transform: [{ scale: submitScale }] }]}>
+                            {loading
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <Text style={s.submitText}>Resend link</Text>
+                            }
+                        </Animated.View>
+                    </Pressable>
+                    <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap}>
+                        <Text style={s.backText}>← Change email</Text>
+                    </Pressable>
+                </Animated.View>
+            )}
+        </>
+    );
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+    return (
+        <View style={s.root}>
+
+            {/* Aurora bands */}
+            <View style={s.auroraContainer} pointerEvents="none">
+                <Animated.View
+                    style={[s.aurora, s.aurora1,
+                            { opacity: aurora1Op, transform: [{ scale: aurora1Scale }] }]}
+                    {...wc('fo-aurora1')}
+                />
+                <Animated.View
+                    style={[s.aurora, s.aurora2,
+                            { opacity: aurora2Op, transform: [{ scale: aurora2Scale }] }]}
+                    {...wc('fo-aurora2')}
+                />
+                <Animated.View
+                    style={[s.aurora, s.aurora3,
+                            { opacity: aurora3Op, transform: [{ scale: aurora3Scale }] }]}
+                    {...wc('fo-aurora3')}
+                />
+                <View style={[s.aurora, s.aurora4]} {...wc('fo-aurora4')} />
+                {/* Fade-to-black gradient over aurora */}
+                <View style={s.auroraFade} pointerEvents="none" />
+            </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
                 <ScrollView
@@ -260,203 +460,52 @@ export default function LoginScreen() {
                     showsVerticalScrollIndicator={false}
                 >
 
-                    {/* ────────── LOGO ────────── */}
+                    {/* ── LOGO ── */}
                     <Animated.View style={[s.logoSection, {
-                        opacity: logoOpacity,
-                        transform: [{ translateY: logoY }],
+                        opacity: logoOpacity, transform: [{ translateY: logoY }],
                     }]}>
-
                         <View style={s.logoRow}>
-                            {/* Heartbeat dot */}
-                            <Animated.View style={[s.pulseWrap, { transform: [{ scale: pulse }] }]}>
+                            {/* Live pulse dot */}
+                            <Animated.View style={[s.pulseDotWrap, { transform: [{ scale: pulse }] }]}
+                                           {...wc('fo-pulse')}>
                                 <View style={s.pulseDot} />
-                                <View style={s.pulseRing} />
                             </Animated.View>
 
-                            {/* Title — CSS shimmer on web, tinted on native */}
+                            {/* Title */}
                             {Platform.OS === 'web'
-                                ? <Text style={s.titleBase} {...wc('fo-shimmer')}>FlowOptix</Text>
-                                : <Text style={[s.titleBase, s.titleNative]}>FlowOptix</Text>
+                                ? <Text style={s.title} {...wc('fo-title')}>FlowOptix</Text>
+                                : <Text style={[s.title, s.titleNative]}>FlowOptix</Text>
                             }
                         </View>
 
                         {/* Typewriter */}
                         <Text style={s.tagline}>
-                            {typeText}
-                            <Text style={s.cursor}>|</Text>
+                            {typeText}<Text style={s.cursor}>_</Text>
                         </Text>
                     </Animated.View>
 
-                    {/* ────────── GLASS CARD ────────── */}
-                    <Animated.View
-                        style={[
-                            s.card,
-                            { opacity: cardOpacity, transform: [{ translateY: cardY }] },
-                            Platform.OS !== 'web' && s.cardNative,
-                        ]}
-                        {...wc('fo-glass', 'fo-card-hover')}
-                    >
-
-                        {/* Dynamic heading by step */}
-                        <Text style={s.cardTitle}>
-                            {step === 'landing' ? 'Welcome back' :
-                             step === 'email'   ? 'Enter your email' :
-                                                  'Check your inbox'}
-                        </Text>
-                        <Text style={s.cardSub}>
-                            {step === 'landing' ? 'Sign in to continue your flow' :
-                             step === 'email'   ? "We'll send a magic link — no password needed" :
-                                                  `Magic link sent to ${email}`}
-                        </Text>
-
-                        {/* ── LANDING ── */}
-                        {step === 'landing' && (
-                            <Animated.View style={[s.btnGroup, { opacity: btnsOpacity }]}>
-
-                                {/* Google */}
-                                <Pressable
-                                    onPressIn={() => pressIn(googleScale)}
-                                    onPressOut={() => pressOut(googleScale)}
-                                    onPress={signInWithGoogle}
-                                    style={{ width: '100%' }}
-                                >
-                                    <Animated.View
-                                        style={[s.googleBtn, { transform: [{ scale: googleScale }] }]}
-                                        {...wc('fo-google-btn')}
-                                    >
-                                        <Text style={s.gIcon}>G</Text>
-                                        <Text style={s.googleText}>Continue with Google</Text>
-                                    </Animated.View>
-                                </Pressable>
-
-                                <View style={s.divider}>
-                                    <View style={s.divLine} />
-                                    <Text style={s.divLabel}>or</Text>
-                                    <View style={s.divLine} />
-                                </View>
-
-                                {/* Email entry */}
-                                <Pressable
-                                    onPressIn={() => pressIn(magicScale)}
-                                    onPressOut={() => pressOut(magicScale)}
-                                    onPress={() => { setError(''); setStep('email'); }}
-                                    style={{ width: '100%' }}
-                                >
-                                    <Animated.View
-                                        style={[s.magicBtn, { transform: [{ scale: magicScale }] }]}
-                                        {...wc('fo-magic-btn')}
-                                    >
-                                        <Ionicons name="mail-outline" size={17} color="rgba(255,255,255,0.7)" style={{ marginRight: 9 }} />
-                                        <Text style={s.magicText}>Sign in with Email</Text>
-                                    </Animated.View>
-                                </Pressable>
-
-                                <Text style={s.termsText}>
-                                    No password. By continuing you agree to our{' '}
-                                    <Text style={s.termLink}>Terms</Text>
-                                    {' '}&amp;{' '}
-                                    <Text style={s.termLink}>Privacy Policy</Text>.
-                                </Text>
+                    {/* ── CARD ── */}
+                    <Animated.View style={[s.cardAnim, {
+                        opacity: cardOpacity, transform: [{ translateY: cardY }],
+                    }]}>
+                        {Platform.OS === 'web' ? (
+                            /* Web: animated gradient border wrapper */
+                            <View {...wc('fo-card-wrap')}>
+                                <View style={s.cardInnerWeb}>{cardContent}</View>
+                            </View>
+                        ) : (
+                            /* Native: animated border color */
+                            <Animated.View style={[s.cardNative, { borderColor: nativeCardBorder }]}>
+                                {cardContent}
                             </Animated.View>
                         )}
-
-                        {/* ── EMAIL ── */}
-                        {step === 'email' && (
-                            <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
-
-                                <Animated.View style={[s.inputWrap, { borderBottomColor: borderColor }]}>
-                                    <Ionicons
-                                        name="mail-outline"
-                                        size={16}
-                                        color={emailFocused ? '#7C5CFF' : 'rgba(255,255,255,0.3)'}
-                                        style={{ marginRight: 10 }}
-                                    />
-                                    <TextInput
-                                        style={s.input}
-                                        placeholder="you@example.com"
-                                        placeholderTextColor="rgba(255,255,255,0.3)"
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        autoCorrect={false}
-                                        value={email}
-                                        onChangeText={t => { setEmail(t); setError(''); }}
-                                        onFocus={() => setFocused(true)}
-                                        onBlur={() => setFocused(false)}
-                                        editable={!loading}
-                                        {...(Platform.OS === 'web' ? wc('fo-input-native') : {})}
-                                    />
-                                </Animated.View>
-
-                                {!!error && <Text style={s.errText}>{error}</Text>}
-
-                                <Pressable
-                                    onPressIn={() => pressIn(submitScale)}
-                                    onPressOut={() => pressOut(submitScale)}
-                                    onPress={sendOtp}
-                                    disabled={loading}
-                                    style={{ width: '100%' }}
-                                >
-                                    <Animated.View
-                                        style={[s.submitBtn, loading && s.btnDisabled, { transform: [{ scale: submitScale }] }]}
-                                        {...wc('fo-submit-btn')}
-                                    >
-                                        {loading ? (
-                                            <ActivityIndicator color="#fff" size="small" />
-                                        ) : (
-                                            <>
-                                                <Ionicons name="send-outline" size={15} color="#fff" style={{ marginRight: 8 }} />
-                                                <Text style={s.submitText}>Send Magic Link</Text>
-                                            </>
-                                        )}
-                                    </Animated.View>
-                                </Pressable>
-
-                                <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
-                                    <Text style={s.backText}>← Back</Text>
-                                </Pressable>
-                            </Animated.View>
-                        )}
-
-                        {/* ── OTP ── */}
-                        {step === 'otp' && (
-                            <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
-
-                                <View style={s.infoBox}>
-                                    <Text style={s.infoEmoji}>📬</Text>
-                                    <Text style={s.infoText}>
-                                        Open the email and tap{' '}
-                                        <Text style={s.infoHL}>"Confirm your mail"</Text>
-                                        {' '}— you'll be signed in automatically.
-                                    </Text>
-                                </View>
-
-                                {!!error && <Text style={s.errText}>{error}</Text>}
-
-                                <Pressable
-                                    onPressIn={() => pressIn(submitScale)}
-                                    onPressOut={() => pressOut(submitScale)}
-                                    onPress={sendOtp}
-                                    disabled={loading}
-                                    style={{ width: '100%' }}
-                                >
-                                    <Animated.View style={[s.submitBtn, s.submitSecondary, { transform: [{ scale: submitScale }] }]}>
-                                        {loading
-                                            ? <ActivityIndicator color="#fff" size="small" />
-                                            : <Text style={s.submitText}>Resend link</Text>
-                                        }
-                                    </Animated.View>
-                                </Pressable>
-
-                                <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap}>
-                                    <Text style={s.backText}>← Change email</Text>
-                                </Pressable>
-                            </Animated.View>
-                        )}
-
                     </Animated.View>
 
                     {/* Footer */}
-                    <Text style={s.footer}>FlowOptix · v1.0 · Powered by AI</Text>
+                    <Animated.View style={[s.footerRow, { opacity: btnsOpacity }]}>
+                        <Text style={s.footerText}>FlowOptix · v1.0 · Powered by AI </Text>
+                        <Text style={s.sparkle} {...wc('fo-sparkle')}>✦</Text>
+                    </Animated.View>
 
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -466,79 +515,110 @@ export default function LoginScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-    root:      { flex: 1 },
-    flex:      { flex: 1 },
-    grid:      { ...StyleSheet.absoluteFillObject },
-    scroll:    {
+    root: { flex: 1, backgroundColor: '#000000' },
+    flex: { flex: 1 },
+    scroll: {
         flexGrow: 1, alignItems: 'center', justifyContent: 'center',
-        paddingHorizontal: 20, paddingVertical: 64,
+        paddingHorizontal: 20, paddingVertical: 70,
     },
 
-    // Orbs
-    orb: { position: 'absolute', borderRadius: 9999 },
-    orb1: { width: 500, height: 500, top: -160, left: -180,  backgroundColor: 'rgba(108,43,217,0.18)' },
-    orb2: { width: 400, height: 400, bottom: 20, right: -130, backgroundColor: 'rgba(30,58,95,0.15)' },
-    orb3: { width: 300, height: 300, top: '40%', left: '30%', backgroundColor: 'rgba(13,79,79,0.12)' },
+    // Aurora
+    auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+    aurora: { position: 'absolute', borderRadius: 9999 },
+    aurora1: {
+        width: 520, height: 380, top: -120, left: -60,
+        backgroundColor: 'rgba(168,85,247,0.55)',
+    },
+    aurora2: {
+        width: 440, height: 320, top: -80, right: -80,
+        backgroundColor: 'rgba(236,72,153,0.45)',
+    },
+    aurora3: {
+        width: 380, height: 280, top: 60, left: '20%',
+        backgroundColor: 'rgba(59,130,246,0.40)',
+    },
+    aurora4: {
+        width: 300, height: 220, top: 40, left: '55%',
+        backgroundColor: 'rgba(6,182,212,0.35)',
+    },
+    auroraFade: {
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        height: 300,
+        // Web: CSS gradient; native: black overlay
+        backgroundColor: Platform.OS === 'web' ? 'transparent' : 'rgba(0,0,0,0.6)',
+        ...(Platform.OS === 'web' ? {
+            backgroundImage: 'linear-gradient(to bottom, transparent 0%, #000000 100%)',
+        } as any : {}),
+    },
 
     // Logo
     logoSection: { alignItems: 'center', marginBottom: 44 },
-    logoRow:     { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-    pulseWrap:   { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-    pulseDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#7C5CFF' },
-    pulseRing:   {
-        position: 'absolute', width: 20, height: 20, borderRadius: 10,
-        borderWidth: 1.5, borderColor: 'rgba(124,92,255,0.45)',
-    },
-    titleBase: {
-        fontSize: 48, fontWeight: '900', letterSpacing: -1.5,
+    logoRow:     { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+    pulseDotWrap:{ width: 12, height: 12, justifyContent: 'center', alignItems: 'center' },
+    pulseDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
+    title: {
+        fontSize: 52, fontWeight: '900', letterSpacing: -2,
         includeFontPadding: false,
     },
-    titleNative: { color: '#ffffff' },
-    tagline:  { fontSize: 15, color: '#888888', letterSpacing: 0.2, textAlign: 'center' },
-    cursor:   { color: '#7C5CFF', fontWeight: '200' },
+    titleNative: { color: '#A855F7' },
+    tagline: { fontSize: 15, color: '#06B6D4', letterSpacing: 0.4, textAlign: 'center' },
+    cursor:  { color: '#06B6D4', opacity: 0.7 },
 
-    // Card
-    card: {
-        width: '100%', maxWidth: 420,
-        borderRadius: 28, padding: 36,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    // Card animation wrapper
+    cardAnim: { width: '100%', maxWidth: 420 },
+
+    // Card — web inner (inside the gradient border wrapper)
+    cardInnerWeb: {
+        backgroundColor: '#111111',
+        borderRadius: 21,
+        padding: 36,
         alignItems: 'center',
-        shadowColor: '#4a1a8a', shadowOffset: { width: 0, height: 24 },
-        shadowOpacity: 0.45, shadowRadius: 48, elevation: 24,
     },
-    cardNative: { backgroundColor: 'rgba(255,255,255,0.05)' },
-    cardTitle:  { fontSize: 26, fontWeight: '700', color: '#ffffff', marginBottom: 8, textAlign: 'center' },
-    cardSub:    { fontSize: 14, color: '#666666', marginBottom: 30, textAlign: 'center', lineHeight: 20 },
 
-    // Button groups
+    // Card — native (has animated borderColor)
+    cardNative: {
+        backgroundColor: '#111111',
+        borderRadius: 22, borderWidth: 1,
+        padding: 36, alignItems: 'center',
+        shadowColor: '#A855F7', shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.4, shadowRadius: 40, elevation: 20,
+    },
+
+    cardTitle: { fontSize: 26, fontWeight: '700', color: '#ffffff', marginBottom: 8, textAlign: 'center' },
+    cardSub:   { fontSize: 14, color: '#888888', marginBottom: 30, textAlign: 'center', lineHeight: 20 },
+
+    // Groups
     btnGroup:  { width: '100%', alignItems: 'center' },
     formGroup: { width: '100%', alignItems: 'center' },
 
-    // Google button
+    // Google button (web gets CSS gradient, native gets solid)
     googleBtn: {
         width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 15, borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        gap: 12, marginBottom: 18,
+        paddingVertical: 15, borderRadius: 14, gap: 12, marginBottom: 18,
     },
-    gIcon:      { fontSize: 21, fontWeight: '700', color: '#4285F4' },
-    googleText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+    googleBtnNative: {
+        backgroundColor: '#A855F7',
+    },
+    gIcon:      { fontSize: 21, fontWeight: '700', color: '#ffffff' },
+    googleText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
     // Divider
     divider: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 18 },
-    divLine:  { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+    divLine:  { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
     divLabel: { color: '#555555', marginHorizontal: 14, fontSize: 12 },
 
-    // Magic link / email button
-    magicBtn: {
-        width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 15, borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        marginBottom: 22,
+    // Email button
+    emailBtnInner: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 15,
     },
-    magicText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+    emailBtnNative: {
+        width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 15, borderRadius: 14,
+        borderWidth: 1, borderColor: 'rgba(168,85,247,0.6)',
+        backgroundColor: 'transparent', marginBottom: 20,
+    },
+    emailBtnText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
 
     // Input
     inputWrap: {
@@ -553,36 +633,38 @@ const s = StyleSheet.create({
     // Submit button
     submitBtn: {
         width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: '#7C5CFF', paddingVertical: 16, borderRadius: 16,
+        backgroundColor: '#A855F7', paddingVertical: 16, borderRadius: 14,
         marginTop: 22, marginBottom: 6,
-        shadowColor: '#7C5CFF', shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.45, shadowRadius: 20, elevation: 10,
+        shadowColor: '#A855F7', shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
     },
-    submitSecondary: { backgroundColor: 'rgba(124,92,255,0.55)' },
-    btnDisabled:     { opacity: 0.65 },
+    submitSecondary: { backgroundColor: 'rgba(168,85,247,0.5)' },
+    btnDisabled:     { opacity: 0.6 },
     submitText:      { color: '#fff', fontSize: 15, fontWeight: '700' },
 
     // Back
     backWrap: { marginTop: 10, paddingVertical: 8, width: '100%', alignItems: 'center' },
-    backText: { color: '#7C5CFF', fontSize: 14, fontWeight: '500' },
+    backText: { color: '#A855F7', fontSize: 14, fontWeight: '500' },
 
     // Error
     errText: { color: '#ff6b6b', fontSize: 13, marginTop: 8, marginBottom: 4, textAlign: 'center' },
 
-    // Info box (OTP)
-    infoBox:  {
-        width: '100%', borderRadius: 18, padding: 22, marginBottom: 22,
-        borderWidth: 1, borderColor: 'rgba(124,92,255,0.18)',
-        backgroundColor: 'rgba(124,92,255,0.06)',
+    // Info (OTP step)
+    infoBox:   {
+        width: '100%', borderRadius: 16, padding: 22, marginBottom: 22,
+        borderWidth: 1, borderColor: 'rgba(168,85,247,0.2)',
+        backgroundColor: 'rgba(168,85,247,0.06)',
     },
     infoEmoji: { fontSize: 36, textAlign: 'center', marginBottom: 12 },
     infoText:  { color: '#888888', fontSize: 14, lineHeight: 21, textAlign: 'center' },
-    infoHL:    { color: '#c4a0ff', fontWeight: '600' },
+    infoHL:    { color: '#A855F7', fontWeight: '600' },
 
     // Terms
-    termsText: { fontSize: 12, color: '#555555', textAlign: 'center', lineHeight: 17, marginTop: 4 },
-    termLink:  { color: '#7C5CFF', textDecorationLine: 'underline' },
+    terms:    { fontSize: 12, color: '#555555', textAlign: 'center', lineHeight: 18, marginTop: 6 },
+    termLink: { color: '#A855F7' },
 
     // Footer
-    footer: { fontSize: 11, color: '#555555', letterSpacing: 0.5, marginTop: 40, textAlign: 'center' },
+    footerRow:  { flexDirection: 'row', alignItems: 'center', marginTop: 44 },
+    footerText: { fontSize: 11, color: '#333333', letterSpacing: 0.5 },
+    sparkle:    { fontSize: 12, color: '#A855F7' },
 });
