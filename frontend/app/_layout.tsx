@@ -41,6 +41,8 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth/callback" />
+        <Stack.Screen name="terms" />
+        <Stack.Screen name="privacy" />
       </Stack>
       {checking && (
         <View style={styles.overlay}>

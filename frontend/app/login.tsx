@@ -5,6 +5,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ const wc = (...c: string[]) => Platform.OS === 'web' ? ({ className: c.join(' ')
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
+    const router = useRouter();
     const [step, setStep]           = useState<Step>('landing');
     const [email, setEmail]         = useState('');
     const [loading, setLoading]     = useState(false);
@@ -329,7 +331,9 @@ export default function LoginScreen() {
 
                     <Text style={s.terms}>
                         No password needed · By continuing you agree to our{' '}
-                        <Text style={s.termLink}>Terms</Text> &amp; <Text style={s.termLink}>Privacy</Text>
+                        <Text style={s.termLink} onPress={() => router.push('/terms' as any)}>Terms</Text>
+                        {' '}&amp;{' '}
+                        <Text style={s.termLink} onPress={() => router.push('/privacy' as any)}>Privacy</Text>
                     </Text>
                 </Animated.View>
             )}
