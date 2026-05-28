@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "FlowOptix Tracker",
+  "description": "Automatically tracks your workflow and detects productivity patterns",
+  "version": "1.0.0",
+  "permissions": ["tabs", "storage", "alarms", "activeTab", "history"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FlowOptix Tracker"
+  }
+}

@@ -285,6 +285,12 @@ export default function Dashboard() {
                                 <Text style={s.taskName}>{t.task_name}</Text>
                                 <Text style={s.taskCat}>{t.category}</Text>
                             </View>
+                            {t.source && t.source !== 'manual' && (
+                                <View style={[s.sourceBadge, { backgroundColor: SOURCE_COLORS[t.source]?.bg ?? '#1E1E2E' }]}>
+                                    <Text style={{ fontSize: 10 }}>{SOURCE_ICONS[t.source] ?? '🤖'}</Text>
+                                    <Text style={[s.sourceBadgeText, { color: SOURCE_COLORS[t.source]?.text ?? '#6A6A7A' }]}>{t.source}</Text>
+                                </View>
+                            )}
                             <Text style={s.taskTime}>
                                 {t.duration_seconds >= 60
                                     ? `${Math.round(t.duration_seconds / 60)}m`
@@ -294,9 +300,38 @@ export default function Dashboard() {
                     ))
                 )}
             </View>
+
+            {/* Auto-detected summary */}
+            {tasks.filter((t: any) => t.source && t.source !== 'manual').length > 0 && (
+                <View style={s.autoDetectCard}>
+                    <Text style={s.autoDetectTitle}>Auto-detected this session</Text>
+                    <View style={s.autoDetectRow}>
+                        {(['gmail', 'calendar', 'browser', 'screen_time'] as const).map(src => {
+                            const count = tasks.filter((t: any) => t.source === src).length;
+                            if (count === 0) return null;
+                            return (
+                                <View key={src} style={s.autoDetectChip}>
+                                    <Text style={{ fontSize: 14 }}>{SOURCE_ICONS[src]}</Text>
+                                    <Text style={s.autoDetectCount}>{count}</Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                </View>
+            )}
         </ScrollView>
     );
 }
+
+const SOURCE_ICONS: Record<string, string> = {
+    gmail: '📧', calendar: '📅', browser: '🌐', screen_time: '📱',
+};
+const SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
+    gmail:       { bg: '#2D0F0F', text: '#F87171' },
+    calendar:    { bg: '#0F1A2D', text: '#60A5FA' },
+    browser:     { bg: '#0F2D2A', text: '#14B8A6' },
+    screen_time: { bg: '#152D1B', text: '#4ADE80' },
+};
 
 const CAT_COLORS: Record<string, string> = {
     'file ops': '#14B8A6', communication: '#F59E0B', development: '#7C5CFF',
@@ -377,4 +412,20 @@ const makeStyles = (colors: any) => StyleSheet.create({
     taskName: { color: colors.text, fontSize: 13 },
     taskCat: { color: colors.muted, fontSize: 11, marginTop: 2 },
     taskTime: { color: colors.muted, fontSize: 12 },
+
+    sourceBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    sourceBadgeText: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+    autoDetectCard: {
+        backgroundColor: 'rgba(124,92,255,0.08)', borderRadius: 14, padding: 14,
+        marginBottom: 14, borderWidth: 1, borderColor: 'rgba(124,92,255,0.2)',
+    },
+    autoDetectTitle: { color: colors.accent, fontSize: 12, fontWeight: '700', marginBottom: 10, letterSpacing: 0.5 },
+    autoDetectRow: { flexDirection: 'row', gap: 10 },
+    autoDetectChip: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: colors.card, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+        borderWidth: 1, borderColor: colors.border,
+    },
+    autoDetectCount: { color: colors.text, fontSize: 14, fontWeight: '700' },
 });

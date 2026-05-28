@@ -235,6 +235,285 @@ app.delete('/automation/rules/:id', async (req, res) => {
     res.json({ success: true });
 });
 
+// ── Auto-log (browser extension / screen time) ────────────────────────────
+app.post('/tasks/auto-log', async (req, res) => {
+    const { user_id, tasks } = req.body;
+    if (!user_id || !Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({ error: 'user_id and tasks array required' });
+    }
+    const rows = tasks.map(t => ({
+        user_id,
+        task_name: t.task_name,
+        category: t.category || 'general',
+        duration_seconds: Math.max(t.duration_seconds || 0, 0),
+        source: ['manual','gmail','calendar','browser','screen_time'].includes(t.source) ? t.source : 'browser',
+        started_at: t.started_at || new Date().toISOString(),
+        ended_at: t.ended_at || new Date().toISOString(),
+    }));
+    const { data, error } = await supabase.from('task_logs').insert(rows).select();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true, logged: data.length });
+});
+
+// ── Integrations status ────────────────────────────────────────────────────
+app.get('/integrations/:user_id', async (req, res) => {
+    const { data, error } = await supabase
+        .from('user_integrations')
+        .select('integration_type, is_connected, connected_at')
+        .eq('user_id', req.params.user_id);
+    if (error) return res.status(400).json({ error: error.message });
+    const map = {};
+    (data ?? []).forEach(r => { map[r.integration_type] = r.is_connected; });
+    res.json({ integrations: map });
+});
+
+// ── Google OAuth helpers ───────────────────────────────────────────────────
+function googleOAuthUrl(scope, redirectUri, state) {
+    const p = new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID || '',
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope,
+        access_type: 'offline',
+        prompt: 'consent',
+        state,
+    });
+    return `https://accounts.google.com/o/oauth2/v2/auth?${p}`;
+}
+
+async function exchangeGoogleCode(code, redirectUri) {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            code,
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uri: redirectUri,
+            grant_type: 'authorization_code',
+        }),
+    });
+    if (!res.ok) throw new Error(`Token exchange failed: ${res.status}`);
+    return res.json();
+}
+
+const SELF_URL = process.env.BACKEND_URL || 'https://flowoptix.onrender.com';
+const APP_URL  = process.env.FRONTEND_URL || 'https://flowoptix-ten.vercel.app';
+
+// ── Gmail OAuth ────────────────────────────────────────────────────────────
+app.get('/gmail/authorize', (req, res) => {
+    const { user_id } = req.query;
+    if (!user_id) return res.status(400).json({ error: 'user_id required' });
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        return res.status(503).json({ error: 'Google OAuth not configured — add GOOGLE_CLIENT_ID to Render env vars' });
+    }
+    res.redirect(googleOAuthUrl(
+        'https://www.googleapis.com/auth/gmail.readonly',
+        `${SELF_URL}/gmail/callback`,
+        user_id
+    ));
+});
+
+app.get('/gmail/callback', async (req, res) => {
+    const { code, state: user_id } = req.query;
+    try {
+        const tokens = await exchangeGoogleCode(code, `${SELF_URL}/gmail/callback`);
+        await supabase.from('user_integrations').upsert({
+            user_id,
+            integration_type: 'gmail',
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token || null,
+            token_expiry: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+            is_connected: true,
+            connected_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,integration_type' });
+        res.redirect(`${APP_URL}?gmail_connected=1`);
+    } catch (err) {
+        res.redirect(`${APP_URL}?gmail_error=${encodeURIComponent(err.message)}`);
+    }
+});
+
+app.get('/gmail/analyze/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+    const { data: integ } = await supabase
+        .from('user_integrations').select('access_token')
+        .eq('user_id', user_id).eq('integration_type', 'gmail').single();
+    if (!integ?.access_token) return res.status(401).json({ error: 'Gmail not connected' });
+
+    try {
+        const listRes = await fetch(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=in:inbox',
+            { headers: { Authorization: `Bearer ${integ.access_token}` } }
+        );
+        const listData = await listRes.json();
+        if (listData.error) return res.status(401).json({ error: 'Gmail token expired — reconnect Gmail' });
+        if (!listData.messages) return res.json({ patterns: [], tasks_logged: 0 });
+
+        const msgFetches = listData.messages.slice(0, 30).map(m =>
+            fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`, {
+                headers: { Authorization: `Bearer ${integ.access_token}` }
+            }).then(r => r.json())
+        );
+        const messages = await Promise.all(msgFetches);
+
+        const senderCounts = {};
+        let reportCount = 0, notifCount = 0;
+        messages.forEach(msg => {
+            const headers = msg.payload?.headers || [];
+            const from    = headers.find(h => h.name === 'From')?.value || '';
+            const subject = headers.find(h => h.name === 'Subject')?.value || '';
+            const domain  = from.match(/@([^>]+)/)?.[1]?.trim() || from;
+            if (domain) senderCounts[domain] = (senderCounts[domain] || 0) + 1;
+            if (/report|digest|summary|daily|weekly/i.test(subject)) reportCount++;
+            if (/notification|alert|reminder|no-reply/i.test(subject)) notifCount++;
+        });
+
+        const patterns = [];
+        Object.entries(senderCounts)
+            .filter(([, n]) => n >= 3).sort(([, a], [, b]) => b - a).slice(0, 5)
+            .forEach(([domain, n]) => patterns.push({
+                description: `${n} emails from ${domain}`,
+                suggestion: `Set up a filter or auto-response for ${domain}`,
+                category: 'communication', count: n,
+            }));
+        if (reportCount >= 3) patterns.push({
+            description: `${reportCount} report/digest emails in inbox`,
+            suggestion: 'Automate report digestion — route to a dedicated folder',
+            category: 'reporting', count: reportCount,
+        });
+        if (notifCount >= 5) patterns.push({
+            description: `${notifCount} notification emails cluttering inbox`,
+            suggestion: 'Unsubscribe or filter automated notifications',
+            category: 'communication', count: notifCount,
+        });
+
+        const now = new Date().toISOString();
+        const tasksToLog = patterns.map(p => ({
+            user_id, task_name: p.description, category: p.category,
+            duration_seconds: 300, source: 'gmail', started_at: now, ended_at: now,
+        }));
+        if (tasksToLog.length > 0) await supabase.from('task_logs').insert(tasksToLog);
+
+        res.json({ patterns, tasks_logged: tasksToLog.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Calendar OAuth ─────────────────────────────────────────────────────────
+app.get('/calendar/authorize', (req, res) => {
+    const { user_id } = req.query;
+    if (!user_id) return res.status(400).json({ error: 'user_id required' });
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        return res.status(503).json({ error: 'Google OAuth not configured — add GOOGLE_CLIENT_ID to Render env vars' });
+    }
+    res.redirect(googleOAuthUrl(
+        'https://www.googleapis.com/auth/calendar.readonly',
+        `${SELF_URL}/calendar/callback`,
+        user_id
+    ));
+});
+
+app.get('/calendar/callback', async (req, res) => {
+    const { code, state: user_id } = req.query;
+    try {
+        const tokens = await exchangeGoogleCode(code, `${SELF_URL}/calendar/callback`);
+        await supabase.from('user_integrations').upsert({
+            user_id,
+            integration_type: 'calendar',
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token || null,
+            token_expiry: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+            is_connected: true,
+            connected_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,integration_type' });
+        res.redirect(`${APP_URL}?calendar_connected=1`);
+    } catch (err) {
+        res.redirect(`${APP_URL}?calendar_error=${encodeURIComponent(err.message)}`);
+    }
+});
+
+app.get('/calendar/analyze/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+    const { data: integ } = await supabase
+        .from('user_integrations').select('access_token')
+        .eq('user_id', user_id).eq('integration_type', 'calendar').single();
+    if (!integ?.access_token) return res.status(401).json({ error: 'Calendar not connected' });
+
+    try {
+        const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const timeMax = new Date().toISOString();
+        const calRes = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=200&singleEvents=true&orderBy=startTime`,
+            { headers: { Authorization: `Bearer ${integ.access_token}` } }
+        );
+        const calData = await calRes.json();
+        if (calData.error) return res.status(401).json({ error: 'Calendar token expired — reconnect Calendar' });
+
+        const events = calData.items || [];
+        const titleCounts = {};
+        let totalMeetingMins = 0, backToBackCount = 0;
+        const sortedEvents = [...events].sort((a, b) =>
+            new Date(a.start?.dateTime || a.start?.date) - new Date(b.start?.dateTime || b.start?.date)
+        );
+
+        sortedEvents.forEach((ev, i) => {
+            const title = (ev.summary || 'Meeting').toLowerCase();
+            titleCounts[title] = (titleCounts[title] || 0) + 1;
+            const start = new Date(ev.start?.dateTime || ev.start?.date);
+            const end   = new Date(ev.end?.dateTime   || ev.end?.date);
+            const mins  = (end - start) / 60000;
+            if (mins > 0 && mins < 480) totalMeetingMins += mins;
+            if (i > 0) {
+                const prevEnd = new Date(sortedEvents[i-1].end?.dateTime || sortedEvents[i-1].end?.date);
+                if ((start - prevEnd) < 5 * 60 * 1000) backToBackCount++;
+            }
+        });
+
+        const patterns = [];
+        Object.entries(titleCounts)
+            .filter(([, n]) => n >= 3).sort(([, a], [, b]) => b - a).slice(0, 4)
+            .forEach(([title, n]) => patterns.push({
+                description: `"${title}" happens ${n} times — recurring meeting`,
+                suggestion: 'Create a template agenda to save prep time each week',
+                category: 'admin', count: n,
+            }));
+
+        const meetingPct = events.length > 0 ? Math.round((totalMeetingMins / (30 * 8 * 60)) * 100) : 0;
+        if (meetingPct > 20) patterns.push({
+            description: `~${meetingPct}% of work hours spent in meetings (${Math.round(totalMeetingMins / 60)}h/month)`,
+            suggestion: 'Block focus-time slots to protect deep work hours',
+            category: 'admin', count: Math.round(totalMeetingMins / 60),
+        });
+        if (backToBackCount >= 3) patterns.push({
+            description: `${backToBackCount} back-to-back meetings detected — no buffer time`,
+            suggestion: 'Add 5-minute gaps between meetings to reduce stress',
+            category: 'admin', count: backToBackCount,
+        });
+
+        const now = new Date().toISOString();
+        const tasksToLog = patterns.map(p => ({
+            user_id, task_name: p.description, category: p.category,
+            duration_seconds: p.count * 60, source: 'calendar', started_at: now, ended_at: now,
+        }));
+        if (tasksToLog.length > 0) await supabase.from('task_logs').insert(tasksToLog);
+
+        res.json({ patterns, tasks_logged: tasksToLog.length, meeting_percent: meetingPct });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Disconnect integration ─────────────────────────────────────────────────
+app.delete('/integrations/:user_id/:type', async (req, res) => {
+    const { user_id, type } = req.params;
+    const { error } = await supabase.from('user_integrations')
+        .update({ is_connected: false, access_token: null, refresh_token: null })
+        .eq('user_id', user_id).eq('integration_type', type);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+
 // ── Delete all user data ───────────────────────────────────────────────────
 app.delete('/users/:user_id/data', async (req, res) => {
     const { user_id } = req.params;

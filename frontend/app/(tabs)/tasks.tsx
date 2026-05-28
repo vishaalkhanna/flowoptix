@@ -399,6 +399,12 @@ export default function TaskLogger() {
                                             <Text style={s.historyName}>{t.task_name}</Text>
                                             <Text style={s.historyMeta}>{t.category} · {formatDate(t.started_at)}</Text>
                                         </View>
+                                        {t.source && t.source !== 'manual' && (
+                                            <View style={[s.sourceBadge, { backgroundColor: SRC_COLORS[t.source]?.bg ?? '#1E1E2E' }]}>
+                                                <Text style={{ fontSize: 9 }}>{SRC_ICONS[t.source] ?? '🤖'}</Text>
+                                                <Text style={[s.sourceBadgeText, { color: SRC_COLORS[t.source]?.text ?? '#6A6A7A' }]}>{t.source}</Text>
+                                            </View>
+                                        )}
                                         <Text style={s.historyDur}>{formatDur(t.duration_seconds)}</Text>
                                         <TouchableOpacity
                                             onPress={() => deleteTask(t.id)}
@@ -434,6 +440,16 @@ export default function TaskLogger() {
         </View>
     );
 }
+
+const SRC_ICONS: Record<string, string> = {
+    gmail: '📧', calendar: '📅', browser: '🌐', screen_time: '📱',
+};
+const SRC_COLORS: Record<string, { bg: string; text: string }> = {
+    gmail:       { bg: '#2D0F0F', text: '#F87171' },
+    calendar:    { bg: '#0F1A2D', text: '#60A5FA' },
+    browser:     { bg: '#0F2D2A', text: '#14B8A6' },
+    screen_time: { bg: '#152D1B', text: '#4ADE80' },
+};
 
 const CAT_COLORS: Record<string, string> = {
     'file ops': '#14B8A6', communication: '#F59E0B', development: '#7C5CFF',
@@ -518,4 +534,6 @@ const makeStyles = (colors: any) => StyleSheet.create({
     historyDur: { color: colors.subtext, fontSize: 13, fontWeight: '600' },
     deleteBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.1)', justifyContent: 'center', alignItems: 'center' },
     deleteBtnText: { color: '#EF4444', fontSize: 12, fontWeight: '700' },
+    sourceBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+    sourceBadgeText: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' as const, letterSpacing: 0.4 },
 });

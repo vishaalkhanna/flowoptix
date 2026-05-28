@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px;
+      min-height: 420px;
+      background: #0A0A0F;
+      color: #F5F5F7;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid #1E1E2E;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: #7C5CFF;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold;
+    }
+    .logo-name { font-size: 18px; font-weight: 700; color: #F5F5F7; }
+    .logo-tag { font-size: 10px; color: #6A6A7A; letter-spacing: 1.5px; text-transform: uppercase; }
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #4ADE80; margin-right: 6px;
+      box-shadow: 0 0 6px #4ADE80;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-text { font-size: 12px; color: #A0A0B0; display: flex; align-items: center; margin-top: 8px; }
+
+    .section { padding: 14px 16px; border-bottom: 1px solid #1E1E2E; }
+    .section-label { font-size: 10px; color: #6A6A7A; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+
+    .uid-row { display: flex; gap: 8px; }
+    input {
+      flex: 1; background: #14141C; border: 1px solid #2A2A38; border-radius: 8px;
+      color: #F5F5F7; padding: 8px 10px; font-size: 12px; outline: none;
+    }
+    input:focus { border-color: #7C5CFF; }
+    input::placeholder { color: #4A4A5A; }
+    button {
+      background: #7C5CFF; color: #fff; border: none; border-radius: 8px;
+      padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary {
+      background: #1E1E2E; color: #A0A0B0; border: 1px solid #2A2A38;
+    }
+
+    .domain-list { max-height: 160px; overflow-y: auto; }
+    .domain-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid #1A1A24;
+    }
+    .domain-row:last-child { border-bottom: none; }
+    .domain-name { font-size: 12px; color: #D0D0E0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .domain-time { font-size: 11px; color: #6A6A7A; margin-left: 8px; white-space: nowrap; }
+    .cat-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 2px 6px; border-radius: 4px; margin-left: 6px; white-space: nowrap;
+    }
+
+    .footer { padding: 12px 16px; display: flex; gap: 8px; }
+    .footer button { flex: 1; }
+
+    .last-sync { font-size: 10px; color: #6A6A7A; padding: 6px 16px 10px; text-align: center; }
+    .empty { color: #4A4A5A; font-size: 12px; padding: 16px 0; text-align: center; }
+    .uid-saved { font-size: 11px; color: #4ADE80; margin-top: 6px; display: none; }
+    .uid-hint { font-size: 11px; color: #6A6A7A; margin-top: 6px; }
+    a { color: #7C5CFF; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">◎</div>
+      <div>
+        <div class="logo-name">FlowOptix</div>
+        <div class="logo-tag">Workflow Tracker</div>
+      </div>
+    </div>
+    <div class="status-text">
+      <span class="status-dot"></span>
+      <span id="status-text">Tracking your workflow</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Your FlowOptix User ID</div>
+    <div class="uid-row">
+      <input id="uid-input" type="text" placeholder="Paste from Profile → User ID" />
+      <button id="uid-save">Save</button>
+    </div>
+    <div class="uid-saved" id="uid-saved">✓ User ID saved</div>
+    <div class="uid-hint" id="uid-hint">
+      Find your ID in <a href="https://flowoptix-ten.vercel.app" target="_blank">FlowOptix</a> → Profile → User ID
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">This session — top sites</div>
+    <div class="domain-list" id="domain-list">
+      <div class="empty">Browsing data will appear here…</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button id="sync-btn">⬆ Sync Now</button>
+    <button class="secondary" id="clear-btn">Clear Session</button>
+  </div>
+
+  <div class="last-sync" id="last-sync"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -209,6 +209,57 @@ function triggerDownload(content: string, mimeType: string, filename: string) {
     URL.revokeObjectURL(url);
 }
 
+// ── Auto-detection integrations ───────────────────────────────────────────
+export const getIntegrations = async (): Promise<Record<string, boolean>> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return {};
+    const { data, error } = await supabase
+        .from('user_integrations')
+        .select('integration_type, is_connected')
+        .eq('user_id', user.id);
+    if (error) return {};
+    const map: Record<string, boolean> = {};
+    (data ?? []).forEach((r: any) => { map[r.integration_type] = r.is_connected; });
+    return map;
+};
+
+export const connectGmail = async (): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const url = `${BACKEND_URL}/gmail/authorize?user_id=${user.id}`;
+    if (typeof window !== 'undefined') window.open(url, '_blank', 'width=500,height=650');
+};
+
+export const analyzeGmail = async (): Promise<{ patterns: any[]; tasks_logged: number }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const res = await fetch(`${BACKEND_URL}/gmail/analyze/${user.id}`);
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Gmail analysis failed'); }
+    return res.json();
+};
+
+export const connectCalendar = async (): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const url = `${BACKEND_URL}/calendar/authorize?user_id=${user.id}`;
+    if (typeof window !== 'undefined') window.open(url, '_blank', 'width=500,height=650');
+};
+
+export const analyzeCalendar = async (): Promise<{ patterns: any[]; tasks_logged: number; meeting_percent: number }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const res = await fetch(`${BACKEND_URL}/calendar/analyze/${user.id}`);
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Calendar analysis failed'); }
+    return res.json();
+};
+
+export const disconnectIntegration = async (type: string): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const res = await fetch(`${BACKEND_URL}/integrations/${user.id}/${type}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to disconnect');
+};
+
 // ── Automation Rules ───────────────────────────────────────────────────────
 export const getAutomationRules = async (): Promise<any[]> => {
     const { data: { user } } = await supabase.auth.getUser();

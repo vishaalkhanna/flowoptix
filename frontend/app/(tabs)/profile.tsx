@@ -6,7 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
-import { exportTasksCSV, exportPatternsCSV, deleteAllUserData } from '../api';
+import { exportTasksCSV, exportPatternsCSV, deleteAllUserData, getIntegrations, connectGmail, analyzeGmail, connectCalendar, analyzeCalendar, disconnectIntegration } from '../api';
 import Toast, { ToastType } from '../../components/Toast';
 
 export default function Profile() {
@@ -23,6 +23,9 @@ export default function Profile() {
     const [nameInput, setNameInput] = useState('');
     const [savingName, setSavingName] = useState(false);
     const [deletingData, setDeletingData] = useState(false);
+    const [integrations, setIntegrations] = useState<Record<string, boolean>>({});
+    const [analyzingGmail, setAnalyzingGmail] = useState(false);
+    const [analyzingCalendar, setAnalyzingCalendar] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
     const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
 
@@ -48,6 +51,8 @@ export default function Profile() {
                 daysActive: scoreRes.data?.length ?? 0,
                 automations: execRes.count ?? 0,
             });
+            const integMap = await getIntegrations();
+            setIntegrations(integMap);
             setLoading(false);
         };
         load();
@@ -108,6 +113,54 @@ export default function Profile() {
         } finally {
             setDeletingData(false);
         }
+    };
+
+    const handleConnectGmail = async () => {
+        try {
+            await connectGmail();
+            showToast('Gmail auth opened — authorise in the new tab, then tap Refresh below', 'info');
+        } catch (e: any) { showToast(e.message || 'Could not connect Gmail', 'error'); }
+    };
+
+    const handleAnalyzeGmail = async () => {
+        setAnalyzingGmail(true);
+        try {
+            const r = await analyzeGmail();
+            showToast(`Gmail analysed — ${r.tasks_logged} patterns logged`, 'success');
+            setStats(s => ({ ...s, tasks: s.tasks + r.tasks_logged }));
+        } catch (e: any) { showToast(e.message || 'Gmail analysis failed', 'error'); }
+        finally { setAnalyzingGmail(false); }
+    };
+
+    const handleConnectCalendar = async () => {
+        try {
+            await connectCalendar();
+            showToast('Calendar auth opened — authorise in the new tab, then tap Refresh below', 'info');
+        } catch (e: any) { showToast(e.message || 'Could not connect Calendar', 'error'); }
+    };
+
+    const handleAnalyzeCalendar = async () => {
+        setAnalyzingCalendar(true);
+        try {
+            const r = await analyzeCalendar();
+            showToast(`Calendar analysed — ${r.tasks_logged} patterns logged (${r.meeting_percent}% meeting time)`, 'success');
+            setStats(s => ({ ...s, tasks: s.tasks + r.tasks_logged }));
+        } catch (e: any) { showToast(e.message || 'Calendar analysis failed', 'error'); }
+        finally { setAnalyzingCalendar(false); }
+    };
+
+    const handleDisconnect = async (type: string) => {
+        try {
+            await disconnectIntegration(type);
+            setIntegrations(prev => ({ ...prev, [type]: false }));
+            showToast(`${type} disconnected`, 'info');
+        } catch { showToast('Could not disconnect', 'error'); }
+    };
+
+    const refreshIntegrations = async () => {
+        const map = await getIntegrations();
+        setIntegrations(map);
+        showToast('Integration status refreshed', 'info');
     };
 
     const handleSignOut = async () => {
@@ -238,6 +291,98 @@ export default function Profile() {
                     ))}
                 </View>
 
+                {/* Auto-Detection Sources */}
+                <View style={s.section}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 }}>
+                        <Text style={s.sectionTitle}>AUTO-DETECTION SOURCES</Text>
+                        <TouchableOpacity onPress={refreshIntegrations}>
+                            <Text style={{ color: colors.accent, fontSize: 12 }}>↻ Refresh</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Gmail */}
+                    <View style={s.serviceRow}>
+                        <View style={[s.serviceIcon, { backgroundColor: '#FF4A0020' }]}>
+                            <Text style={{ fontSize: 16 }}>📧</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.serviceName}>Gmail</Text>
+                            <Text style={s.serviceDesc}>Detect email patterns automatically</Text>
+                        </View>
+                        {integrations.gmail ? (
+                            <View style={{ gap: 6 }}>
+                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeGmail} disabled={analyzingGmail}>
+                                    {analyzingGmail
+                                        ? <ActivityIndicator color="#fff" size="small" />
+                                        : <Text style={s.analyseBtnText}>Analyse</Text>}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handleDisconnect('gmail')}>
+                                    <Text style={s.disconnectText}>Disconnect</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectGmail}>
+                                <Text style={s.connectBtnText}>Connect</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Google Calendar */}
+                    <View style={s.serviceRow}>
+                        <View style={[s.serviceIcon, { backgroundColor: '#4285F420' }]}>
+                            <Text style={{ fontSize: 16 }}>📅</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.serviceName}>Google Calendar</Text>
+                            <Text style={s.serviceDesc}>Detect meeting patterns + time usage</Text>
+                        </View>
+                        {integrations.calendar ? (
+                            <View style={{ gap: 6 }}>
+                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeCalendar} disabled={analyzingCalendar}>
+                                    {analyzingCalendar
+                                        ? <ActivityIndicator color="#fff" size="small" />
+                                        : <Text style={s.analyseBtnText}>Analyse</Text>}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handleDisconnect('calendar')}>
+                                    <Text style={s.disconnectText}>Disconnect</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectCalendar}>
+                                <Text style={s.connectBtnText}>Connect</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Browser Extension */}
+                    <View style={s.serviceRow}>
+                        <View style={[s.serviceIcon, { backgroundColor: '#14B8A620' }]}>
+                            <Text style={{ fontSize: 16 }}>🌐</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.serviceName}>Browser Extension</Text>
+                            <Text style={s.serviceDesc}>Auto-tracks websites visited (Chrome)</Text>
+                        </View>
+                        <View style={s.connectedBadge}>
+                            <Text style={{ color: '#60A5FA', fontSize: 11, fontWeight: '600' }}>Install from repo</Text>
+                        </View>
+                    </View>
+
+                    {/* Android Screen Time */}
+                    <View style={[s.serviceRow, { borderBottomWidth: 0 }]}>
+                        <View style={[s.serviceIcon, { backgroundColor: '#4ADE8020' }]}>
+                            <Text style={{ fontSize: 16 }}>📱</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.serviceName}>Android Screen Time</Text>
+                            <Text style={s.serviceDesc}>Auto-detect app usage patterns</Text>
+                        </View>
+                        <View style={[s.connectedBadge, { backgroundColor: '#1E1E2E' }]}>
+                            <Text style={{ color: '#6A6A7A', fontSize: 11, fontWeight: '600' }}>Coming soon</Text>
+                        </View>
+                    </View>
+                </View>
+
                 {/* App Info */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>APP INFO</Text>
@@ -344,6 +489,11 @@ const makeStyles = (colors: any) => StyleSheet.create({
     serviceDesc: { color: colors.muted, fontSize: 12, marginTop: 1 },
     connectedBadge: { backgroundColor: '#14532D', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
     connectedText: { color: '#4ADE80', fontSize: 11, fontWeight: '600' },
+    connectBtn: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+    connectBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    analyseBtn: { backgroundColor: '#14532D', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+    analyseBtnText: { color: '#4ADE80', fontSize: 12, fontWeight: '600' },
+    disconnectText: { color: colors.muted, fontSize: 11, textAlign: 'center' },
 
     exportRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
     exportIcon: { color: colors.accent, fontSize: 18, width: 24, textAlign: 'center' },
