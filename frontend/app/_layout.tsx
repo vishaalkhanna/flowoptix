@@ -1,24 +1,37 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { ThemeProvider } from '../context/ThemeContext';
 
 export default function RootLayout() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check session in background — default is login screen (from index.tsx)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/(tabs)');
-    });
+    let done = false;
 
-    // Keep watching for login/logout
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) router.replace('/(tabs)');
+    const finish = (hasSession: boolean) => {
+      if (done) return;
+      done = true;
+      setChecking(false);
+      if (hasSession) router.replace('/(tabs)');
       else router.replace('/login');
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    const timeout = setTimeout(() => finish(false), 2000);
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(timeout);
+        finish(!!session);
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        finish(false);
+      });
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
@@ -29,6 +42,20 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth/callback" />
       </Stack>
+      {checking && (
+        <View style={styles.overlay}>
+          <ActivityIndicator color="#7C5CFF" size="large" />
+        </View>
+      )}
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0A0A0F',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
