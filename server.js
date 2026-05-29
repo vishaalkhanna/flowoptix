@@ -92,6 +92,162 @@ app.get('/productivity/:user_id', async (req, res) => {
     res.json(result);
 });
 
+// ── AI Chat ────────────────────────────────────────────────────────────────
+app.post('/chat', async (req, res) => {
+    const { user_id, message } = req.body;
+    if (!user_id || !message) {
+        return res.status(400).json({ error: 'user_id and message are required' });
+    }
+
+    try {
+        const [userRes, tasksRes, patternsRes, integrationsRes, execLogsRes] = await Promise.all([
+            supabaseAdmin.auth.admin.getUserById(user_id),
+            supabase.from('task_logs')
+                .select('task_name, category, duration_seconds, source, started_at')
+                .eq('user_id', user_id)
+                .order('started_at', { ascending: false })
+                .limit(20),
+            supabase.from('task_patterns')
+                .select('pattern_name, frequency, confidence_score, description, ai_analysis')
+                .eq('user_id', user_id)
+                .order('detected_at', { ascending: false })
+                .limit(10),
+            supabaseAdmin.from('user_integrations')
+                .select('integration_type, is_connected')
+                .eq('user_id', user_id),
+            supabase.from('execution_logs')
+                .select('action_type, action_name, status, executed_at')
+                .eq('user_id', user_id)
+                .order('executed_at', { ascending: false })
+                .limit(10),
+        ]);
+
+        const user         = userRes.data?.user;
+        const tasks        = tasksRes.data ?? [];
+        const patterns     = patternsRes.data ?? [];
+        const execLogs     = execLogsRes.data ?? [];
+        const integrations = {};
+        (integrationsRes.data ?? []).forEach(i => { integrations[i.integration_type] = i.is_connected; });
+
+        // User name from Google OAuth metadata
+        const userName  = user?.user_metadata?.full_name
+            || user?.user_metadata?.name
+            || user?.email?.split('@')[0]
+            || 'Unknown';
+        const userEmail = user?.email || 'Unknown';
+
+        // Productivity score from live task data
+        const productivity = calculateProductivityScore(tasks);
+        const score        = productivity?.score ?? 0;
+
+        // Format tasks
+        const taskLines = tasks.length > 0
+            ? tasks.map(t => {
+                const mins = t.duration_seconds > 60
+                    ? `${Math.round(t.duration_seconds / 60)}m`
+                    : `${t.duration_seconds ?? 0}s`;
+                const src  = t.source ? ` [${t.source}]` : '';
+                const date = t.started_at ? new Date(t.started_at).toLocaleDateString() : '';
+                return `  • ${t.task_name} (${t.category || 'general'}${src}, ${mins}${date ? ', ' + date : ''})`;
+            }).join('\n')
+            : '  • No tasks logged yet';
+
+        // Category breakdown
+        const catCounts = {};
+        tasks.forEach(t => { catCounts[t.category || 'general'] = (catCounts[t.category || 'general'] || 0) + 1; });
+        const catSummary = Object.entries(catCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([c, n]) => `${c}: ${n}`).join(', ') || 'none';
+
+        // Format patterns
+        const patternLines = patterns.length > 0
+            ? patterns.map(p => {
+                const conf    = Math.round((p.confidence_score ?? 0) * 100);
+                const descLine = p.description  ? `\n    Description: ${p.description}` : '';
+                const aiLine   = p.ai_analysis  ? `\n    AI insight: ${p.ai_analysis}`  : '';
+                return `  • ${p.pattern_name} — ${p.frequency ?? 0}x, ${conf}% confidence${descLine}${aiLine}`;
+            }).join('\n')
+            : '  • No patterns detected yet — user should run Analyze Patterns';
+
+        // Format integrations
+        const integrationLines = [
+            `  • Gmail: ${integrations['gmail'] ? '✓ Connected' : '✗ Not connected'}`,
+            `  • Google Calendar: ${integrations['calendar'] ? '✓ Connected' : '✗ Not connected'}`,
+            `  • Chrome Extension: ${integrations['browser'] ? '✓ Connected' : '✗ Not connected'}`,
+        ].join('\n');
+
+        // Format execution history
+        const execLines = execLogs.length > 0
+            ? execLogs.map(e => {
+                const date = e.executed_at ? new Date(e.executed_at).toLocaleDateString() : '';
+                return `  • ${e.action_name || e.action_type} — ${e.status}${date ? ' on ' + date : ''}`;
+            }).join('\n')
+            : '  • No automations executed yet';
+
+        const systemPrompt = `You are FlowOptix AI, a personal productivity intelligence assistant.
+You have full, real-time access to the user's actual data. Use it to give specific, accurate answers.
+
+USER PROFILE:
+  Name: ${userName}
+  Email: ${userEmail}
+
+PRODUCTIVITY SCORE: ${score}/100
+  Tasks in history: ${tasks.length}
+
+RECENT TASKS (last 20):
+${taskLines}
+
+TASK CATEGORY BREAKDOWN: ${catSummary}
+
+DETECTED PATTERNS:
+${patternLines}
+
+CONNECTED INTEGRATIONS:
+${integrationLines}
+
+RECENT AUTOMATION HISTORY:
+${execLines}
+
+HOW TO RESPOND:
+- Answer any question — productivity, tasks, patterns, general knowledge, anything
+- Use specific names, numbers, and dates from the real data above when relevant
+- When asked "What is my name?", answer: ${userName}
+- When data is sparse, acknowledge it honestly and suggest how to get more data
+- Be conversational and natural — no length restrictions`;
+
+        const apiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://flowoptix-ten.vercel.app',
+            },
+            body: JSON.stringify({
+                model: 'anthropic/claude-3.5-haiku',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message },
+                ],
+                max_tokens: 1000,
+            }),
+        });
+
+        const aiData = await aiRes.json();
+        const reply  = aiData.choices?.[0]?.message?.content;
+        if (!reply) {
+            const detail = aiData.error ? JSON.stringify(aiData.error) : 'No reply from AI';
+            console.error('[/chat] OpenRouter error:', detail);
+            return res.status(500).json({ error: detail });
+        }
+
+        res.json({ reply });
+    } catch (err) {
+        console.error('[/chat] Exception:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── Execute: Email ─────────────────────────────────────────────────────────
 app.post('/execute/email', async (req, res) => {
     const { to, subject, body, user_id } = req.body;

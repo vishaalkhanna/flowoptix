@@ -152,14 +152,19 @@ export const analyzePatterns = async () => {
 
 // ── AI Chat ────────────────────────────────────────────────────────────────
 export const chatWithAI = async (message: string): Promise<string> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-    const { data, error } = await supabase.functions.invoke('chat-assistant', {
-        body: { message },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const res = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, message }),
     });
-    if (error) throw new Error(error.message);
-    if (data?.error) throw new Error(data.error);
+    if (!res.ok) {
+        let msg = 'Chat request failed';
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch { /* ignore */ }
+        throw new Error(msg);
+    }
+    const data = await res.json();
     return data.reply as string;
 };
 
