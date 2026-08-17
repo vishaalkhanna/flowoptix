@@ -17,5 +17,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      - key: ZAPIER_WEBHOOK_EMAIL
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: NOTIFY_EMAIL
         sync: false

@@ -1,7 +1,27 @@
 require('dotenv').config();
 const supabase = require('./supabaseClient');
 
-const ZAPIER_WEBHOOK_URL = process.env.ZAPIER_WEBHOOK_EMAIL || 'https://hooks.zapier.com/hooks/catch/27732258/4oxjwdm/';
+const RESEND_API_KEY    = process.env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowOptix <onboarding@resend.dev>';
+
+async function sendViaResend(to, subject, text) {
+    if (!RESEND_API_KEY) {
+        throw new Error('RESEND_API_KEY not set — email service not configured');
+    }
+    const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: [to], subject, text }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.message || `Resend HTTP ${response.status}`);
+    }
+    return data;
+}
 
 const APP_URLS = {
     'Open Excel':          'https://www.office.com/launch/excel',
@@ -49,15 +69,11 @@ async function sendEmail(to, subject, body, userId) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(to.trim())) throw new Error('Invalid recipient email address');
 
-    const response = await fetch(ZAPIER_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: to.trim(), subject: subject.trim(), body: body.trim() }),
-    });
-
-    if (!response.ok) {
+    try {
+        await sendViaResend(to.trim(), subject.trim(), body.trim());
+    } catch (err) {
         await logToSupabase(userId, 'email', `Failed email to ${to}`, { to, subject }, 'failed');
-        throw new Error(`Email service unavailable (${response.status}). Task logged but email not sent.`);
+        throw new Error(`Email service unavailable (${err.message}). Task logged but email not sent.`);
     }
 
     await logToSupabase(userId, 'email', `Sent email to ${to}`, { to, subject }, 'success');
@@ -100,7 +116,7 @@ async function generateTaskReport(userId) {
         .from('task_logs')
         .select('*')
         .eq('user_id', userId)
-        .order('started_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
@@ -131,4 +147,4 @@ async function generateTaskReport(userId) {
     };
 }
 
-module.exports = { sendEmail, openApp, executeAutomation, generateTaskReport, logToSupabase };
+module.exports = { sendEmail, sendViaResend, openApp, executeAutomation, generateTaskReport, logToSupabase };

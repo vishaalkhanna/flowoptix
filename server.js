@@ -15,7 +15,7 @@ const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
     : supabase;
 const { detectPatterns, calculateProductivityScore } = require('./patternDetection');
 const { analyzePatternWithAI, getProductivityInsight } = require('./aiEngine');
-const { sendEmail, openApp, executeAutomation, generateTaskReport, logToSupabase } = require('./executionEngine');
+const { sendEmail, sendViaResend, openApp, executeAutomation, generateTaskReport, logToSupabase } = require('./executionEngine');
 
 // ── ML category predictor ──────────────────────────────────────────────────
 let modelWeights = null;
@@ -85,27 +85,23 @@ app.post('/predict/category', (req, res) => {
     }
 });
 
-// ── Zapier webhook helper (non-blocking) ───────────────────────────────────
-function sendZapierWebhook(task) {
-    const webhookUrl = process.env.ZAPIER_WEBHOOK_TASKS;
-    if (!webhookUrl) {
-        console.log('[Zapier] ZAPIER_WEBHOOK_TASKS not set — skipping webhook');
+// ── Task notification email (non-blocking) ─────────────────────────────────
+function sendTaskNotificationEmail(task) {
+    const notifyEmail = process.env.NOTIFY_EMAIL;
+    if (!notifyEmail) {
+        console.log('[Email] NOTIFY_EMAIL not set — skipping task notification');
         return;
     }
-    const payload = {
-        id:        task.id,
-        task_name: task.task_name,
-        category:  task.category || 'general',
-        source:    task.source   || 'manual',
-        logged_at: task.created_at || new Date().toISOString(),
-    };
-    fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    })
-        .then(r => console.log(`[Zapier] Webhook sent — status: ${r.status}, task: "${task.task_name}"`))
-        .catch(err => console.error(`[Zapier] Webhook failed (task still saved): ${err.message}`));
+    const subject = `FlowOptix: task logged — ${task.task_name}`;
+    const body = [
+        `Task: ${task.task_name}`,
+        `Category: ${task.category || 'general'}`,
+        `Source: ${task.source || 'manual'}`,
+        `Logged at: ${task.created_at || new Date().toISOString()}`,
+    ].join('\n');
+    sendViaResend(notifyEmail, subject, body)
+        .then(() => console.log(`[Email] Task notification sent — task: "${task.task_name}"`))
+        .catch(err => console.error(`[Email] Task notification failed (task still saved): ${err.message}`));
 }
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
@@ -115,8 +111,8 @@ app.post('/tasks/log', async (req, res) => {
     const row = { user_id, task_name, category: category || 'general' };
     const { data, error } = await supabase.from('task_logs').insert([row]).select();
     if (error) return res.status(400).json({ error: error.message });
-    // Fire webhook after response — failure here never blocks the save
-    sendZapierWebhook(data[0]);
+    // Fire email notification after response — failure here never blocks the save
+    sendTaskNotificationEmail(data[0]);
     res.json({ success: true, task: data[0] });
 });
 

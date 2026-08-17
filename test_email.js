@@ -1,32 +1,32 @@
 /**
- * Tests that POST /tasks/log saves the task AND fires the Zapier webhook.
+ * Tests that POST /tasks/log saves the task AND fires the Resend email notification.
  *
  * Usage:
- *   node test_zapier.js                          # hits live Render
- *   BASE_URL=http://localhost:3000 node test_zapier.js   # hits local server
+ *   TEST_USER_ID=<uuid> node test_email.js                        # hits live Render
+ *   BASE_URL=http://localhost:3000 TEST_USER_ID=<uuid> node test_email.js  # local
  *
  * Requirements:
- *   - ZAPIER_WEBHOOK_TASKS must be set on the server (Render env var)
- *   - A valid test user_id from your Supabase auth.users table
+ *   - RESEND_API_KEY must be set on the server (Render env var)
+ *   - NOTIFY_EMAIL must be set on the server (Render env var)
+ *   - A valid user_id UUID from your Supabase auth.users table
  *
  * The script verifies:
  *   1. /tasks/log returns HTTP 200 with the saved task
- *   2. The webhook fires (confirmed by the server log "Zapier Webhook sent")
- *      — Zapier itself is external, so we can't assert its receipt here.
- *      Check your Google Sheet a few seconds after running.
+ *   2. The Resend email fires (confirmed by the server log "[Email] Task notification sent")
+ *      — Check your NOTIFY_EMAIL inbox a few seconds after running.
  */
 
 const https = require('https');
 const http  = require('http');
 
-const BASE_URL      = process.env.BASE_URL || 'https://flowoptix.onrender.com';
+const BASE_URL     = process.env.BASE_URL || 'https://flowoptix.onrender.com';
 // Must be a real UUID from your Supabase auth.users table.
-// Set via env var:  TEST_USER_ID=<your-user-id> node test_zapier.js
-const TEST_USER_ID  = process.env.TEST_USER_ID;
+// Set via env var:  TEST_USER_ID=<your-user-id> node test_email.js
+const TEST_USER_ID = process.env.TEST_USER_ID;
 if (!TEST_USER_ID) {
     console.error('ERROR: TEST_USER_ID env var is required.');
     console.error('  Find your user ID in Supabase → Authentication → Users.');
-    console.error('  Run: TEST_USER_ID=<uuid> node test_zapier.js');
+    console.error('  Run: TEST_USER_ID=<uuid> node test_email.js');
     process.exit(1);
 }
 
@@ -89,7 +89,7 @@ async function run() {
 
             console.log(`PASS  "${task.task_name}"`);
             console.log(`      id: ${body.task?.id ?? 'n/a'}  category: ${task.category}`);
-            console.log(`      Zapier webhook fired (check server log + Google Sheet)`);
+            console.log(`      Resend email fired (check server log + NOTIFY_EMAIL inbox)`);
             passed++;
         } catch (err) {
             console.log(`ERROR "${task.task_name}"`);
@@ -101,7 +101,7 @@ async function run() {
     console.log('─'.repeat(60));
     if (failed === 0) {
         console.log(`All ${passed} tasks logged successfully`);
-        console.log('Check your Google Sheet in ~5s to confirm rows arrived via Zapier.');
+        console.log('Check your NOTIFY_EMAIL inbox in ~5s to confirm emails arrived via Resend.');
     } else {
         console.log(`${passed} passed, ${failed} failed`);
         process.exit(1);
