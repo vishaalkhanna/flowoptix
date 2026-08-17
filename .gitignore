@@ -25,3 +25,8 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# ML binaries (retrain with: node train_model.js)
+*.pkl
+__pycache__/
+*.pyc

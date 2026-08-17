@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "train:model": "node train_model.js",
+    "train:model:sklearn": "python ml_model.py"
   },
   "engines": {
     "node": ">=18.0.0"
