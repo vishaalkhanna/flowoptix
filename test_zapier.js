@@ -20,8 +20,15 @@ const https = require('https');
 const http  = require('http');
 
 const BASE_URL      = process.env.BASE_URL || 'https://flowoptix.onrender.com';
-// Replace with a real user_id from your Supabase project if needed
-const TEST_USER_ID  = process.env.TEST_USER_ID || 'test-user-zapier-smoke';
+// Must be a real UUID from your Supabase auth.users table.
+// Set via env var:  TEST_USER_ID=<your-user-id> node test_zapier.js
+const TEST_USER_ID  = process.env.TEST_USER_ID;
+if (!TEST_USER_ID) {
+    console.error('ERROR: TEST_USER_ID env var is required.');
+    console.error('  Find your user ID in Supabase → Authentication → Users.');
+    console.error('  Run: TEST_USER_ID=<uuid> node test_zapier.js');
+    process.exit(1);
+}
 
 const TASKS = [
     { task_name: 'Send email to client',    category: 'communication' },
