@@ -85,15 +85,44 @@ app.post('/predict/category', (req, res) => {
     }
 });
 
+// ── Zapier webhook helper (non-blocking) ───────────────────────────────────
+function sendZapierWebhook(task) {
+    const webhookUrl = process.env.ZAPIER_WEBHOOK_TASKS;
+    if (!webhookUrl) {
+        console.log('[Zapier] ZAPIER_WEBHOOK_TASKS not set — skipping webhook');
+        return;
+    }
+    const payload = {
+        id:               task.id,
+        task_name:        task.task_name,
+        category:         task.category || 'general',
+        duration_seconds: task.duration_seconds ?? 0,
+        duration_minutes: task.duration_seconds ? parseFloat((task.duration_seconds / 60).toFixed(2)) : 0,
+        source:           task.source || 'manual',
+        started_at:       task.started_at,
+        ended_at:         task.ended_at,
+        logged_at:        new Date().toISOString(),
+    };
+    fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+        .then(r => console.log(`[Zapier] Webhook sent — status: ${r.status}, task: "${task.task_name}"`))
+        .catch(err => console.error(`[Zapier] Webhook failed (task still saved): ${err.message}`));
+}
+
 // ── Tasks ──────────────────────────────────────────────────────────────────
 app.post('/tasks/log', async (req, res) => {
     const { user_id, task_name, category, duration_seconds } = req.body;
     if (!user_id || !task_name) return res.status(400).json({ error: 'user_id and task_name are required' });
-    const { data, error } = await supabase
-        .from('task_logs')
-        .insert([{ user_id, task_name, category, duration_seconds, started_at: new Date(), ended_at: new Date() }])
-        .select();
+    const now = new Date();
+    const row = { user_id, task_name, category: category || 'general', started_at: now, ended_at: now };
+    if (duration_seconds !== undefined && duration_seconds !== null) row.duration_seconds = duration_seconds;
+    const { data, error } = await supabase.from('task_logs').insert([row]).select();
     if (error) return res.status(400).json({ error: error.message });
+    // Fire webhook after response — failure here never blocks the save
+    sendZapierWebhook(data[0]);
     res.json({ success: true, task: data[0] });
 });
 
