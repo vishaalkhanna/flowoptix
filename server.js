@@ -93,15 +93,11 @@ function sendZapierWebhook(task) {
         return;
     }
     const payload = {
-        id:               task.id,
-        task_name:        task.task_name,
-        category:         task.category || 'general',
-        duration_seconds: task.duration_seconds ?? 0,
-        duration_minutes: task.duration_seconds ? parseFloat((task.duration_seconds / 60).toFixed(2)) : 0,
-        source:           task.source || 'manual',
-        started_at:       task.started_at,
-        ended_at:         task.ended_at,
-        logged_at:        new Date().toISOString(),
+        id:        task.id,
+        task_name: task.task_name,
+        category:  task.category || 'general',
+        source:    task.source   || 'manual',
+        logged_at: task.created_at || new Date().toISOString(),
     };
     fetch(webhookUrl, {
         method: 'POST',
@@ -114,11 +110,9 @@ function sendZapierWebhook(task) {
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
 app.post('/tasks/log', async (req, res) => {
-    const { user_id, task_name, category, duration_seconds } = req.body;
+    const { user_id, task_name, category } = req.body;
     if (!user_id || !task_name) return res.status(400).json({ error: 'user_id and task_name are required' });
-    const now = new Date();
-    const row = { user_id, task_name, category: category || 'general', started_at: now, ended_at: now };
-    if (duration_seconds !== undefined && duration_seconds !== null) row.duration_seconds = duration_seconds;
+    const row = { user_id, task_name, category: category || 'general' };
     const { data, error } = await supabase.from('task_logs').insert([row]).select();
     if (error) return res.status(400).json({ error: error.message });
     // Fire webhook after response — failure here never blocks the save
@@ -130,7 +124,7 @@ app.get('/tasks/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const { data, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user_id)
-        .order('started_at', { ascending: false });
+        .order('created_at', { ascending: false });
     if (error) return res.status(400).json({ error: error.message });
     res.json({ tasks: data });
 });
@@ -147,7 +141,7 @@ app.get('/patterns/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const { data: tasks, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user_id)
-        .order('started_at', { ascending: true });
+        .order('created_at', { ascending: true });
     if (error) return res.status(400).json({ error: error.message });
 
     const patterns = detectPatterns(tasks);
@@ -184,9 +178,9 @@ app.post('/chat', async (req, res) => {
         const [userRes, tasksRes, patternsRes, integrationsRes, execLogsRes] = await Promise.all([
             supabaseAdmin.auth.admin.getUserById(user_id),
             supabase.from('task_logs')
-                .select('task_name, category, duration_seconds, source, started_at')
+                .select('task_name, category, source, created_at')
                 .eq('user_id', user_id)
-                .order('started_at', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(20),
             supabase.from('task_patterns')
                 .select('pattern_name, frequency, confidence_score, description, ai_analysis')
@@ -224,12 +218,9 @@ app.post('/chat', async (req, res) => {
         // Format tasks
         const taskLines = tasks.length > 0
             ? tasks.map(t => {
-                const mins = t.duration_seconds > 60
-                    ? `${Math.round(t.duration_seconds / 60)}m`
-                    : `${t.duration_seconds ?? 0}s`;
                 const src  = t.source ? ` [${t.source}]` : '';
-                const date = t.started_at ? new Date(t.started_at).toLocaleDateString() : '';
-                return `  • ${t.task_name} (${t.category || 'general'}${src}, ${mins}${date ? ', ' + date : ''})`;
+                const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : '';
+                return `  • ${t.task_name} (${t.category || 'general'}${src}${date ? ', ' + date : ''})`;
             }).join('\n')
             : '  • No tasks logged yet';
 
@@ -493,10 +484,7 @@ app.post('/tasks/auto-log', async (req, res) => {
         user_id,
         task_name: t.task_name,
         category: t.category || 'general',
-        duration_seconds: Math.max(t.duration_seconds || 0, 0),
         source: ['manual','gmail','calendar','browser','screen_time'].includes(t.source) ? t.source : 'browser',
-        started_at: t.started_at || new Date().toISOString(),
-        ended_at: t.ended_at || new Date().toISOString(),
     }));
     const { data, error } = await supabase.from('task_logs').insert(rows).select();
     if (error) return res.status(400).json({ error: error.message });
@@ -646,10 +634,8 @@ app.get('/gmail/analyze/:user_id', async (req, res) => {
             category: 'communication', count: notifCount,
         });
 
-        const now = new Date().toISOString();
         const tasksToLog = patterns.map(p => ({
-            user_id, task_name: p.description, category: p.category,
-            duration_seconds: 300, source: 'gmail', started_at: now, ended_at: now,
+            user_id, task_name: p.description, category: p.category, source: 'gmail',
         }));
         if (tasksToLog.length > 0) await supabase.from('task_logs').insert(tasksToLog);
 
@@ -761,10 +747,8 @@ app.get('/calendar/analyze/:user_id', async (req, res) => {
             category: 'admin', count: backToBackCount,
         });
 
-        const now = new Date().toISOString();
         const tasksToLog = patterns.map(p => ({
-            user_id, task_name: p.description, category: p.category,
-            duration_seconds: p.count * 60, source: 'calendar', started_at: now, ended_at: now,
+            user_id, task_name: p.description, category: p.category, source: 'calendar',
         }));
         if (tasksToLog.length > 0) await supabase.from('task_logs').insert(tasksToLog);
 
