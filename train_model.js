@@ -260,10 +260,36 @@ for (const { input, expected } of tests) {
 }
 console.log(`\nAccuracy: ${passed}/${tests.length} (${Math.round(passed/tests.length*100)}%)`);
 
-// ── Write weights ──────────────────────────────────────────────────────────
+// ── Convert to categoryWeights format for server.js ───────────────────────
+// scale log-probs so sigmoid(score) gives meaningful confidence values
+const SCALE = 8; // compress log-space into a sigmoid-friendly range
+const categoryWeights = {};
+for (const c of model.classes) {
+    const vocab = {};
+    for (const [word, logProb] of Object.entries(model.logLikelihood[c])) {
+        if (word !== '<UNK>') {
+            // store scaled weight; baseline (UNK) is subtracted so seen words are positive
+            const delta = logProb - model.logLikelihood[c]['<UNK>'];
+            if (delta > 0) vocab[word] = parseFloat((delta / SCALE).toFixed(6));
+        }
+    }
+    categoryWeights[c] = {
+        prior: parseFloat((model.logPriors[c] / SCALE).toFixed(6)),
+        vocab,
+    };
+}
+
+const output = {
+    classes: model.classes,
+    categoryWeights,
+    vocabSize: model.vocabSize,
+    trainingExamples: model.trainingExamples,
+    trainedAt: model.trainedAt,
+};
+
 const outPath = path.join(__dirname, 'model_weights.json');
-fs.writeFileSync(outPath, JSON.stringify(model, null, 2));
-console.log(`\nModel saved → ${outPath}`);
+fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
+console.log(`\nModel saved -> ${outPath}`);
 console.log(`  Classes: ${model.classes.join(', ')}`);
 console.log(`  Vocab size: ${model.vocabSize}`);
 console.log(`  Training examples: ${model.trainingExamples}`);

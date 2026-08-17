@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const supabase = require('./supabaseClient');
 
@@ -19,44 +17,38 @@ const { detectPatterns, calculateProductivityScore } = require('./patternDetecti
 const { analyzePatternWithAI, getProductivityInsight } = require('./aiEngine');
 const { sendEmail, openApp, executeAutomation, generateTaskReport, logToSupabase } = require('./executionEngine');
 
-// ── Naive Bayes category predictor (loaded from model_weights.json) ────────
-let _nbModel = null;
-function loadNBModel() {
-    if (_nbModel) return _nbModel;
-    const p = path.join(__dirname, 'model_weights.json');
-    if (!fs.existsSync(p)) return null;
-    try {
-        _nbModel = JSON.parse(fs.readFileSync(p, 'utf8'));
-        console.log(`[ML] Model loaded — classes: ${_nbModel.classes.join(', ')}`);
-    } catch (e) {
-        console.error('[ML] Failed to load model_weights.json:', e.message);
-    }
-    return _nbModel;
+// ── ML category predictor ──────────────────────────────────────────────────
+let modelWeights = null;
+try {
+    modelWeights = require('./model_weights.json');
+    console.log(`[ML] Model loaded — classes: ${modelWeights.classes.join(', ')}`);
+} catch (e) {
+    console.error('[ML] model_weights.json not found — run: npm run train:model');
 }
-loadNBModel();
 
 function predictCategory(taskName) {
-    const model = loadNBModel();
-    if (!model) return { category: 'general', confidence: 0 };
-    const tokens = taskName.toLowerCase().split(/[\s\W_]+/).filter(t => t.length > 1);
-    let best = null, bestScore = -Infinity;
-    const scores = {};
-    for (const c of model.classes) {
-        let score = model.logPriors[c];
-        for (const tok of tokens) {
-            const ll = model.logLikelihood[c];
-            score += ll[tok] ?? ll['<UNK>'] ?? -10;
-        }
-        scores[c] = score;
-        if (score > bestScore) { bestScore = score; best = c; }
+    if (!modelWeights || !modelWeights.categoryWeights) {
+        return { category: 'general', confidence: 0 };
     }
-    // Softmax to get approximate confidence
-    const maxS = Math.max(...Object.values(scores));
-    const expScores = {};
-    let expSum = 0;
-    for (const c of model.classes) { expScores[c] = Math.exp(scores[c] - maxS); expSum += expScores[c]; }
-    const confidence = expScores[best] / expSum;
-    return { category: best || 'general', confidence: parseFloat(confidence.toFixed(4)) };
+    const text = taskName.toLowerCase();
+    let maxScore = -Infinity;
+    let predictedCategory = 'general';
+    let confidence = 0;
+
+    for (const [category, weights] of Object.entries(modelWeights.categoryWeights)) {
+        let score = weights.prior;
+        for (const word of text.split(/\s+/)) {
+            if (weights.vocab[word]) {
+                score += weights.vocab[word];
+            }
+        }
+        if (score > maxScore) {
+            maxScore = score;
+            predictedCategory = category;
+            confidence = Math.min(0.99, Math.exp(score) / (1 + Math.exp(score)));
+        }
+    }
+    return { category: predictedCategory, confidence: parseFloat(confidence.toFixed(4)) };
 }
 
 const app = express();
@@ -78,11 +70,19 @@ app.get('/', (req, res) => res.json({ message: 'FlowOptix API is running!', vers
 // ── ML: Predict Category ───────────────────────────────────────────────────
 app.post('/predict/category', (req, res) => {
     const { task_name } = req.body;
-    if (!task_name || typeof task_name !== 'string') {
-        return res.status(400).json({ error: 'task_name (string) is required' });
+    if (!task_name || typeof task_name !== 'string' || !task_name.trim()) {
+        return res.status(400).json({ error: 'task_name is required' });
     }
-    const result = predictCategory(task_name.trim());
-    res.json({ task_name, ...result });
+    if (!modelWeights) {
+        return res.status(503).json({ error: 'ML model not loaded — run: npm run train:model' });
+    }
+    try {
+        const prediction = predictCategory(task_name.trim());
+        res.json({ task_name: task_name.trim(), ...prediction });
+    } catch (err) {
+        console.error('[/predict/category] Error:', err.message);
+        res.status(500).json({ error: 'Prediction failed', details: err.message });
+    }
 });
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
