@@ -1,5 +1,5 @@
 require('dotenv').config();
-const supabase = require('./supabaseClient');
+const supabase = require('./supabaseAdminClient');
 
 const RESEND_API_KEY    = process.env.RESEND_API_KEY;
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'FlowOptix <onboarding@resend.dev>';

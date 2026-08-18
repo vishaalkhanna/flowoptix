@@ -1,18 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const supabase = require('./supabaseClient');
-
-// Service-role client bypasses RLS — used only for server-side writes like OAuth token storage.
-// Falls back to anon client if SUPABASE_SERVICE_ROLE_KEY is not set (will fail RLS).
-const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(
-        process.env.SUPABASE_URL.trim(),
-        process.env.SUPABASE_SERVICE_ROLE_KEY.trim(),
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      )
-    : supabase;
+const supabaseAdmin = require('./supabaseAdminClient');
+// All backend DB access uses the service-role client so RLS (auth.uid() policies) is bypassed.
+// The anon client is kept only for the frontend (which has a real user session).
+const supabase = supabaseAdmin;
 const { detectPatterns, calculateProductivityScore } = require('./patternDetection');
 const { analyzePatternWithAI, getProductivityInsight } = require('./aiEngine');
 const { sendEmail, sendViaResend, openApp, executeAutomation, generateTaskReport, logToSupabase } = require('./executionEngine');
