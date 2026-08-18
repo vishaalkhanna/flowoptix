@@ -48,12 +48,13 @@ const APP_URLS = {
 
 async function logToSupabase(userId, actionType, actionName, _actionDetails, status) {
     try {
-        await supabase.from('execution_logs').insert({
+        const { error } = await supabase.from('execution_logs').insert({
             user_id: userId,
             action_type: actionType,
             action_description: actionName,
             status,
         });
+        if (error) console.error('[execution_logs] insert error:', error.message);
     } catch (err) {
         console.error('Failed to log execution:', err.message);
     }

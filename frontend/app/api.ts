@@ -31,12 +31,13 @@ export const logExecution = async (
 ): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('execution_logs').insert({
+    const { error } = await supabase.from('execution_logs').insert({
         user_id: user.id,
         action_type,
         action_description: action_description ?? action_type,
         status,
     });
+    if (error) console.error('[execution_logs] insert error:', error.message);
 };
 
 export const getExecutionHistory = async (): Promise<any[]> => {
