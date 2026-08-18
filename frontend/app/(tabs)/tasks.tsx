@@ -159,8 +159,8 @@ export default function TaskLogger() {
                 await executeAction(name);
             }
             setTaskName(''); setCategory('');
-        } catch {
-            showToast('Database error. Could not log task — please try again.', 'error');
+        } catch (err: any) {
+            showToast(err?.message || 'Could not log task — please try again.', 'error');
         } finally {
             setLogging(false);
         }

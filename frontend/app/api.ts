@@ -62,14 +62,20 @@ export const clearExecutionHistory = async (): Promise<void> => {
 };
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
-export const logTask = async (task_name: string, category: string, duration_seconds: number) => {
+export const logTask = async (task_name: string, category: string, _duration_seconds?: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
-    return supabase.from('task_logs').insert({
-        user_id: user.id, task_name, category, duration_seconds,
-        started_at: new Date(Date.now() - duration_seconds * 1000).toISOString(),
-        ended_at: new Date().toISOString(),
+    const res = await fetch(`${BACKEND_URL}/tasks/log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, task_name, category }),
     });
+    if (!res.ok) {
+        let msg = 'Could not log task';
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch { /* ignore */ }
+        throw new Error(msg);
+    }
+    return res.json() as Promise<{ success: boolean; task: Record<string, unknown> }>;
 };
 
 export const getTasks = async () => {
