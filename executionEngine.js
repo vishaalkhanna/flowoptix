@@ -133,9 +133,9 @@ async function generateTaskReport(userId) {
     const catCounts = {};
     rows.forEach(t => { catCounts[t.category || 'general'] = (catCounts[t.category || 'general'] || 0) + 1; });
 
-    const header = 'task_name,category,duration_seconds,started_at,ended_at';
+    const header = 'task_name,category,duration,created_at';
     const lines = rows.map(r =>
-        [r.task_name, r.category, r.duration_seconds, r.started_at, r.ended_at]
+        [r.task_name, r.category, r.duration, r.created_at]
             .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`)
             .join(',')
     );

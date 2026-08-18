@@ -122,9 +122,10 @@ function sendTaskNotificationEmail(task) {
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
 app.post('/tasks/log', async (req, res) => {
-    const { user_id, task_name, category } = req.body;
+    const { user_id, task_name, category, duration } = req.body;
     if (!user_id || !task_name) return res.status(400).json({ error: 'user_id and task_name are required' });
     const row = { user_id, task_name, category: category || 'general' };
+    if (duration != null) row.duration = duration;
     const { data, error } = await supabase.from('task_logs').insert([row]).select();
     if (error) return res.status(400).json({ error: error.message });
     // Fire email notification after response — failure here never blocks the save

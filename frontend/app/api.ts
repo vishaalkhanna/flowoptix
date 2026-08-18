@@ -62,13 +62,13 @@ export const clearExecutionHistory = async (): Promise<void> => {
 };
 
 // ── Tasks ──────────────────────────────────────────────────────────────────
-export const logTask = async (task_name: string, category: string, _duration_seconds?: number) => {
+export const logTask = async (task_name: string, category: string, duration?: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     const res = await fetch(`${BACKEND_URL}/tasks/log`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, task_name, category }),
+        body: JSON.stringify({ user_id: user.id, task_name, category, ...(duration != null ? { duration } : {}) }),
     });
     if (!res.ok) {
         let msg = 'Could not log task';
