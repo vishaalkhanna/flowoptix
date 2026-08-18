@@ -19,7 +19,13 @@ try {
 }
 
 // ── Startup config check ───────────────────────────────────────────────────
-(function checkEmailConfig() {
+(function checkConfig() {
+    console.log(`[Config] SUPABASE_URL: ${process.env.SUPABASE_URL || '(not set)'}`);
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.log('[Config] SUPABASE_SERVICE_ROLE_KEY set — backend using service-role client');
+    } else {
+        console.error('[Config] WARNING: SUPABASE_SERVICE_ROLE_KEY missing — falling back to anon key; all writes will be rejected by RLS');
+    }
     if (process.env.RESEND_API_KEY) {
         console.log('[Config] RESEND_API_KEY set');
     } else {
