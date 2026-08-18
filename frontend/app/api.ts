@@ -83,7 +83,7 @@ export const getTasks = async () => {
     if (!user) throw new Error('Not authenticated');
     const { data, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user.id)
-        .order('started_at', { ascending: false }).limit(50);
+        .order('created_at', { ascending: false }).limit(50);
     if (error) throw error;
     return { data: { tasks: data } };
 };
@@ -179,13 +179,13 @@ export const exportTasksCSV = async (): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     const { data, error } = await supabase
-        .from('task_logs').select('*').eq('user_id', user.id)
-        .order('started_at', { ascending: false });
+        .from('task_logs').select('id, task_name, category, source, created_at').eq('user_id', user.id)
+        .order('created_at', { ascending: false });
     if (error) throw error;
     const rows = data ?? [];
-    const header = 'task_name,category,duration_seconds,started_at,ended_at';
+    const header = 'task_name,category,source,created_at';
     const lines = rows.map((r: any) =>
-        [r.task_name, r.category, r.duration_seconds, r.started_at, r.ended_at]
+        [r.task_name, r.category, r.source, r.created_at]
             .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`)
             .join(',')
     );
