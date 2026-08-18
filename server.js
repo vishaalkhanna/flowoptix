@@ -113,7 +113,7 @@ function sendTaskNotificationEmail(task) {
         `Task: ${task.task_name}`,
         `Category: ${task.category || 'general'}`,
         `Source: ${task.source || 'manual'}`,
-        `Logged at: ${task.created_at || new Date().toISOString()}`,
+        `Logged at: ${task.started_at || new Date().toISOString()}`,
     ].join('\n');
     sendViaResend(notifyEmail, subject, body)
         .then(() => console.log(`[Email] Task notification sent — task: "${task.task_name}"`))
@@ -125,7 +125,7 @@ app.post('/tasks/log', async (req, res) => {
     const { user_id, task_name, category, duration } = req.body;
     if (!user_id || !task_name) return res.status(400).json({ error: 'user_id and task_name are required' });
     const row = { user_id, task_name, category: category || 'general' };
-    if (duration != null) row.duration = duration;
+    if (duration != null) row.duration_seconds = duration;
     const { data, error } = await supabase.from('task_logs').insert([row]).select();
     if (error) return res.status(400).json({ error: error.message });
     // Fire email notification after response — failure here never blocks the save
@@ -137,7 +137,7 @@ app.get('/tasks/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const { data, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user_id)
-        .order('created_at', { ascending: false });
+        .order('started_at', { ascending: false });
     if (error) return res.status(400).json({ error: error.message });
     res.json({ tasks: data });
 });
@@ -154,7 +154,7 @@ app.get('/patterns/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const { data: tasks, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user_id)
-        .order('created_at', { ascending: true });
+        .order('started_at', { ascending: true });
     if (error) return res.status(400).json({ error: error.message });
 
     const patterns = detectPatterns(tasks);
@@ -191,22 +191,22 @@ app.post('/chat', async (req, res) => {
         const [userRes, tasksRes, patternsRes, integrationsRes, execLogsRes] = await Promise.all([
             supabaseAdmin.auth.admin.getUserById(user_id),
             supabase.from('task_logs')
-                .select('task_name, category, source, created_at')
+                .select('task_name, category, source, started_at')
                 .eq('user_id', user_id)
-                .order('created_at', { ascending: false })
+                .order('started_at', { ascending: false })
                 .limit(20),
             supabase.from('task_patterns')
-                .select('pattern_name, frequency, confidence, ai_analysis')
+                .select('pattern_name, frequency, confidence_score, task_sequence')
                 .eq('user_id', user_id)
-                .order('created_at', { ascending: false })
+                .order('detected_at', { ascending: false })
                 .limit(10),
             supabaseAdmin.from('user_integrations')
                 .select('integration_type, is_connected')
                 .eq('user_id', user_id),
             supabase.from('execution_logs')
-                .select('action_type, action_description, status, created_at')
+                .select('action_type, action_name, status, executed_at')
                 .eq('user_id', user_id)
-                .order('created_at', { ascending: false })
+                .order('executed_at', { ascending: false })
                 .limit(10),
         ]);
 
@@ -234,7 +234,7 @@ app.post('/chat', async (req, res) => {
         const taskLines = tasks.length > 0
             ? tasks.map(t => {
                 const src  = t.source ? ` [${t.source}]` : '';
-                const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : '';
+                const date = t.started_at ? new Date(t.started_at).toLocaleDateString() : '';
                 return `  • ${t.task_name} (${t.category || 'general'}${src}${date ? ', ' + date : ''})`;
             }).join('\n')
             : '  • No tasks logged yet';
@@ -249,9 +249,8 @@ app.post('/chat', async (req, res) => {
         // Format patterns
         const patternLines = patterns.length > 0
             ? patterns.map(p => {
-                const conf   = Math.round((p.confidence ?? 0) * 100);
-                const aiLine = p.ai_analysis ? `\n    AI insight: ${p.ai_analysis}` : '';
-                return `  • ${p.pattern_name} — ${p.frequency ?? 0}x, ${conf}% confidence${aiLine}`;
+                const conf = Math.round((p.confidence_score ?? 0) * 100);
+                return `  • ${p.pattern_name} — ${p.frequency ?? 0}x, ${conf}% confidence`;
             }).join('\n')
             : '  • No patterns detected yet — user should run Analyze Patterns';
 
@@ -265,8 +264,8 @@ app.post('/chat', async (req, res) => {
         // Format execution history
         const execLines = execLogs.length > 0
             ? execLogs.map(e => {
-                const date = e.created_at ? new Date(e.created_at).toLocaleDateString() : '';
-                return `  • ${e.action_description || e.action_type} — ${e.status}${date ? ' on ' + date : ''}`;
+                const date = e.executed_at ? new Date(e.executed_at).toLocaleDateString() : '';
+                return `  • ${e.action_name || e.action_type} — ${e.status}${date ? ' on ' + date : ''}`;
             }).join('\n')
             : '  • No automations executed yet';
 

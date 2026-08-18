@@ -46,13 +46,15 @@ const APP_URLS = {
     'Attend Standup':      'https://meet.google.com',
 };
 
-async function logToSupabase(userId, actionType, actionName, _actionDetails, status) {
+async function logToSupabase(userId, actionType, actionName, actionDetails, status) {
     try {
         const { error } = await supabase.from('execution_logs').insert({
             user_id: userId,
             action_type: actionType,
-            action_description: actionName,
+            action_name: actionName,
+            action_details: actionDetails || {},
             status,
+            executed_at: new Date().toISOString(),
         });
         if (error) console.error('[execution_logs] insert error:', error.message);
     } catch (err) {
@@ -115,7 +117,7 @@ async function generateTaskReport(userId) {
         .from('task_logs')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('started_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
@@ -132,9 +134,9 @@ async function generateTaskReport(userId) {
     const catCounts = {};
     rows.forEach(t => { catCounts[t.category || 'general'] = (catCounts[t.category || 'general'] || 0) + 1; });
 
-    const header = 'task_name,category,duration,created_at';
+    const header = 'task_name,category,duration_seconds,started_at,ended_at';
     const lines = rows.map(r =>
-        [r.task_name, r.category, r.duration, r.created_at]
+        [r.task_name, r.category, r.duration_seconds, r.started_at, r.ended_at]
             .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`)
             .join(',')
     );
