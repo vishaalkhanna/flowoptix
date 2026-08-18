@@ -73,7 +73,7 @@ async function sendEmail(to, subject, body, userId) {
         await sendViaResend(to.trim(), subject.trim(), body.trim());
     } catch (err) {
         await logToSupabase(userId, 'email', `Failed email to ${to}`, { to, subject }, 'failed');
-        throw new Error(`Email service unavailable (${err.message}). Task logged but email not sent.`);
+        throw new Error(`Email could not be sent (${err.message}).`);
     }
 
     await logToSupabase(userId, 'email', `Sent email to ${to}`, { to, subject }, 'success');

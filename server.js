@@ -26,6 +26,22 @@ try {
     console.error('[ML] model_weights.json not found — run: npm run train:model');
 }
 
+// ── Startup config check ───────────────────────────────────────────────────
+(function checkEmailConfig() {
+    if (process.env.RESEND_API_KEY) {
+        console.log('[Config] RESEND_API_KEY set');
+    } else {
+        console.log('[Config] WARNING: RESEND_API_KEY missing — emails will fail');
+    }
+    if (process.env.NOTIFY_EMAIL) {
+        console.log(`[Config] NOTIFY_EMAIL set to ${process.env.NOTIFY_EMAIL}`);
+    } else {
+        console.log('[Config] WARNING: NOTIFY_EMAIL missing — task notifications disabled');
+    }
+    const effectiveFrom = process.env.RESEND_FROM_EMAIL || 'FlowOptix <onboarding@resend.dev> (Resend sandbox fallback)';
+    console.log(`[Config] RESEND_FROM_EMAIL: ${effectiveFrom}`);
+})();
+
 function predictCategory(taskName) {
     if (!modelWeights || !modelWeights.categoryWeights) {
         return { category: 'general', confidence: 0 };
