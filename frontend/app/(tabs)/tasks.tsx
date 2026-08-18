@@ -149,7 +149,7 @@ export default function TaskLogger() {
         if (!name.trim()) return Alert.alert('Task name required', 'Please enter a task name');
         setLogging(true);
         try {
-            await logTask(name.trim(), cat || 'general');
+            await logTask(name.trim(), cat || 'general', 30);
             const action = TASK_ACTIONS[name];
             if (!action) {
                 showToast(`✓ "${name}" logged`, 'success');
