@@ -4,7 +4,7 @@ import {
     StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { sendEmailViaZapier, logExecution } from '../app/api';
+import { sendEmail, logExecution } from '../app/api';
 import { supabase } from '../lib/supabase';
 
 const TEMPLATES = [
@@ -81,7 +81,7 @@ export default function EmailModal({
 
         setSending(true); setFailed(false);
         try {
-            await sendEmailViaZapier(to.trim(), subject.trim(), body.trim());
+            await sendEmail(to.trim(), subject.trim(), body.trim());
             await logExecution('send_email', { to: to.trim(), subject: subject.trim() }, 'success', `Sent email to ${to.trim()}`);
             onSuccess('Email sent successfully!');
         } catch (err: any) {

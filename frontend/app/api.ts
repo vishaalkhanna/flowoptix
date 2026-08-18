@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 // ── Email (proxied through backend to avoid CORS) ──────────────────────────
-export const sendEmailViaZapier = async (to: string, subject: string, body: string): Promise<void> => {
+export const sendEmail = async (to: string, subject: string, body: string): Promise<void> => {
     if (!to.trim() || !subject.trim() || !body.trim()) {
         throw new Error('To, subject, and body are all required');
     }
@@ -16,7 +16,7 @@ export const sendEmailViaZapier = async (to: string, subject: string, body: stri
         body: JSON.stringify({ to: to.trim(), subject: subject.trim(), body: body.trim() }),
     });
     if (!res.ok) {
-        let msg = 'Email service unavailable. Task logged but email not sent.';
+        let msg = 'Email could not be sent.';
         try { const d = await res.json(); if (d.error) msg = d.error; } catch { /* ignore */ }
         throw new Error(msg);
     }

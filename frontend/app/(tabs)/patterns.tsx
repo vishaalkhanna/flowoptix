@@ -27,9 +27,9 @@ export default function Patterns() {
         try {
             const name: string = (p.pattern_name ?? '').toLowerCase();
             if (name.includes('file') || name.includes('excel') || name.includes('data') || name.includes('spread')) {
-                openUrl('https://zapier.com/apps/google-sheets/integrations');
-                await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'zapier_sheets' }, 'success');
-                showToast('Opening Zapier → Google Sheets template', 'info');
+                openUrl('https://docs.google.com/spreadsheets');
+                await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_sheets' }, 'success');
+                showToast('Google Sheets opened', 'success');
             } else if (name.includes('communication') || name.includes('email') || name.includes('slack') || name.includes('message')) {
                 setEmailModal(true);
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'email_draft' }, 'success');
@@ -43,9 +43,9 @@ export default function Patterns() {
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_calendar' }, 'success');
                 showToast('Google Calendar opened', 'success');
             } else {
-                openUrl('https://zapier.com/app/dashboard');
-                await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'zapier_dashboard' }, 'success');
-                showToast('Opening Zapier to set up automation', 'info');
+                openUrl('https://flowoptix-ten.vercel.app');
+                await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_productivity_hub' }, 'success');
+                showToast('Opening FlowOptix dashboard', 'info');
             }
         } catch {
             await logExecution('pattern_automation', { pattern: p.pattern_name }, 'failed');
