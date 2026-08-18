@@ -196,25 +196,27 @@ app.post('/chat', async (req, res) => {
                 .order('created_at', { ascending: false })
                 .limit(20),
             supabase.from('task_patterns')
-                .select('pattern_name, frequency, confidence_score, description, ai_analysis')
+                .select('pattern_name, frequency, confidence, ai_analysis')
                 .eq('user_id', user_id)
-                .order('detected_at', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(10),
             supabaseAdmin.from('user_integrations')
                 .select('integration_type, is_connected')
                 .eq('user_id', user_id),
             supabase.from('execution_logs')
-                .select('action_type, action_name, status, executed_at')
+                .select('action_type, action_description, status, created_at')
                 .eq('user_id', user_id)
-                .order('executed_at', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(10),
         ]);
 
         const user         = userRes.data?.user;
         const tasks        = tasksRes.data ?? [];
-        const patterns     = patternsRes.data ?? [];
         const execLogs     = execLogsRes.data ?? [];
         const integrations = {};
+        if (patternsRes.error) console.error('[/chat] task_patterns query error:', patternsRes.error.message);
+        if (execLogsRes.error) console.error('[/chat] execution_logs query error:', execLogsRes.error.message);
+        const patterns     = patternsRes.data ?? [];
         (integrationsRes.data ?? []).forEach(i => { integrations[i.integration_type] = i.is_connected; });
 
         // User name from Google OAuth metadata
@@ -247,10 +249,9 @@ app.post('/chat', async (req, res) => {
         // Format patterns
         const patternLines = patterns.length > 0
             ? patterns.map(p => {
-                const conf    = Math.round((p.confidence_score ?? 0) * 100);
-                const descLine = p.description  ? `\n    Description: ${p.description}` : '';
-                const aiLine   = p.ai_analysis  ? `\n    AI insight: ${p.ai_analysis}`  : '';
-                return `  • ${p.pattern_name} — ${p.frequency ?? 0}x, ${conf}% confidence${descLine}${aiLine}`;
+                const conf   = Math.round((p.confidence ?? 0) * 100);
+                const aiLine = p.ai_analysis ? `\n    AI insight: ${p.ai_analysis}` : '';
+                return `  • ${p.pattern_name} — ${p.frequency ?? 0}x, ${conf}% confidence${aiLine}`;
             }).join('\n')
             : '  • No patterns detected yet — user should run Analyze Patterns';
 
@@ -264,8 +265,8 @@ app.post('/chat', async (req, res) => {
         // Format execution history
         const execLines = execLogs.length > 0
             ? execLogs.map(e => {
-                const date = e.executed_at ? new Date(e.executed_at).toLocaleDateString() : '';
-                return `  • ${e.action_name || e.action_type} — ${e.status}${date ? ' on ' + date : ''}`;
+                const date = e.created_at ? new Date(e.created_at).toLocaleDateString() : '';
+                return `  • ${e.action_description || e.action_type} — ${e.status}${date ? ' on ' + date : ''}`;
             }).join('\n')
             : '  • No automations executed yet';
 
