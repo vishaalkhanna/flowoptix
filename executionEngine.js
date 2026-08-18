@@ -46,15 +46,13 @@ const APP_URLS = {
     'Attend Standup':      'https://meet.google.com',
 };
 
-async function logToSupabase(userId, actionType, actionName, actionDetails, status) {
+async function logToSupabase(userId, actionType, actionName, _actionDetails, status) {
     try {
         await supabase.from('execution_logs').insert({
             user_id: userId,
             action_type: actionType,
-            action_name: actionName,
-            action_details: actionDetails || {},
+            action_description: actionName,
             status,
-            executed_at: new Date().toISOString(),
         });
     } catch (err) {
         console.error('Failed to log execution:', err.message);

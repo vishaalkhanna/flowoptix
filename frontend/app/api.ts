@@ -25,19 +25,17 @@ export const sendEmail = async (to: string, subject: string, body: string): Prom
 // ── Execution Logs ─────────────────────────────────────────────────────────
 export const logExecution = async (
     action_type: string,
-    action_details: Record<string, any>,
+    _action_details: Record<string, any>,
     status: 'success' | 'failed',
-    action_name?: string,
+    action_description?: string,
 ): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('execution_logs').insert({
         user_id: user.id,
         action_type,
-        action_name: action_name ?? action_type,
-        action_details,
+        action_description: action_description ?? action_type,
         status,
-        executed_at: new Date().toISOString(),
     });
 };
 
@@ -48,7 +46,7 @@ export const getExecutionHistory = async (): Promise<any[]> => {
         .from('execution_logs')
         .select('*')
         .eq('user_id', user.id)
-        .order('executed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100);
     if (error) throw error;
     return data ?? [];
