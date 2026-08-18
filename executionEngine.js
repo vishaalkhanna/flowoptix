@@ -89,15 +89,15 @@ function openApp(appName) {
 
 async function executeAutomation(pattern, userId) {
     const name = (pattern.pattern_name || '').toLowerCase();
-    let action = 'zapier_dashboard';
-    let url = 'https://zapier.com/app/dashboard';
+    let action = 'open_productivity_hub';
+    let url = 'https://flowoptix-ten.vercel.app';
 
     if (name.includes('file') || name.includes('excel') || name.includes('data') || name.includes('spread')) {
-        action = 'zapier_sheets';
-        url = 'https://zapier.com/apps/google-sheets/integrations';
+        action = 'open_sheets';
+        url = 'https://docs.google.com/spreadsheets';
     } else if (name.includes('communication') || name.includes('email') || name.includes('slack')) {
-        action = 'email_modal';
-        url = 'SHOW_EMAIL_MODAL';
+        action = 'open_gmail';
+        url = 'https://mail.google.com';
     } else if (name.includes('dev') || name.includes('code') || name.includes('pr') || name.includes('git')) {
         action = 'open_dev_tools';
         url = 'https://vscode.dev';
