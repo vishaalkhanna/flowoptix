@@ -1,71 +1,125 @@
 # FlowOptix
 
-## Overview
-
-FlowOptix is a productivity intelligence platform that automatically logs and categorizes your work tasks, detects recurring patterns in how you spend your time, and surfaces actionable insights through an AI-powered assistant. It combines a React Native mobile/web frontend with an Express.js backend that handles task storage, ML-based categorization, pattern analysis, and email notifications.
+AI-powered productivity platform that logs tasks, detects workflow patterns, and surfaces insights through a Claude-backed assistant. Built with React Native (Expo), Express.js, and Supabase.
 
 ## Architecture
 
+### Two-client Supabase design
+
+FlowOptix deliberately uses two Supabase clients — one in the app, one in the backend — because they have different access requirements:
+
+| Client | Key | Location | RLS |
+|---|---|---|---|
+| **App** (anon key) | `SUPABASE_ANON_KEY` | `frontend/lib/supabase.ts` | Applies — user sees only their own rows |
+| **Backend** (service-role key) | `SUPABASE_SERVICE_ROLE_KEY` | `supabaseAdminClient.js` | Bypassed — backend has no user session |
+
+RLS is enabled on all eight tables with `auth.uid()`-scoped policies. The backend must use the service-role key; without it every insert is rejected.
+
+### Data flow
+
+Task writes go through the backend so the Resend notification email can be triggered:
+
+```
+App  →  POST /tasks/log  →  Express (supabaseAdmin)  →  Supabase
+                          └→  Resend notification email
+```
+
+Reads (task list, patterns, execution history) go directly from the app to Supabase:
+
+```
+App  →  Supabase (anon key + user session, RLS scopes to user)
+```
+
+### Tables
+
+| Table | Key columns |
+|---|---|
+| `task_logs` | `id, user_id, task_name, category, started_at, ended_at, duration_seconds, source` |
+| `task_patterns` | `id, user_id, pattern_name, task_sequence, frequency, confidence_score, detected_at` |
+| `execution_logs` | `id, user_id, action_type, action_details, status, executed_at, action_name` |
+| `automation_rules` | `id, user_id, rule_name, trigger_pattern, action_type, action_config, is_active, created_at` |
+| `automation_suggestions` | linked to patterns |
+| `productivity_scores` | `id, user_id, score, score_date, breakdown` |
+| `user_integrations` | `id, user_id, integration_type, access_token, refresh_token, is_connected, connected_at` |
+
+### Stack
+
 | Layer | Technology |
 |---|---|
-| **Frontend** | React Native (Expo) — iOS, Android, and web from one codebase |
-| **Backend** | Express.js, hosted on Render |
-| **Database** | Supabase (PostgreSQL) with row-level security |
-| **ML** | Naive Bayes classifier (`model_weights.json`) — predicts task category from task name |
-| **Email** | Resend API — sends a notification email each time a task is logged |
-| **Auth** | Supabase OAuth (Google Sign-In) |
+| Frontend | React Native (Expo SDK 54) — iOS, Android, and web |
+| Backend | Express.js on Render |
+| Database | Supabase (PostgreSQL), RLS enabled |
+| Email | Resend API, called from `executionEngine.js sendViaResend()` |
+| ML | Naive Bayes classifier — weights in `model_weights.json` |
+| Auth | Supabase Google OAuth |
 
 ## Setup
 
 ### Prerequisites
 
 - Node.js ≥ 18
-- A [Supabase](https://supabase.com) project
-- A [Resend](https://resend.com) account
+- Supabase project (URL is hardcoded in `frontend/lib/supabase.ts`; use the existing project or swap the constant)
+- Resend account and API key
 
-### Steps
+### 1. Clone and install
 
-1. **Clone and install**
+```bash
+git clone https://github.com/vishaalkhanna/flowoptix.git
+cd flowoptix
+npm install
+cd frontend && npm install
+```
 
-   ```bash
-   git clone https://github.com/vishaalkhanna/flowoptix.git
-   cd flowoptix
-   npm install
-   ```
+### 2. Backend environment
 
-2. **Create a Supabase project** and copy the project URL and anon key from  
-   Settings → API.
+Create `.env` in the project root:
 
-3. **Create a Resend account**, verify a sending domain or use the sandbox, and  
-   copy the API key from the Resend dashboard.
+```env
+SUPABASE_URL=https://cdhichktpjedtjbbqhsf.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...   # required — missing key falls back to anon, all writes rejected by RLS
+OPENROUTER_API_KEY=...
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL=FlowOptix <you@yourdomain.com>
+NOTIFY_EMAIL=your-inbox@example.com
+```
 
-4. **Create a `.env` file** in the project root:
+The startup log prints `[Config] SUPABASE_SERVICE_ROLE_KEY set` when the key is present, or a loud warning when it is missing.
 
-   ```env
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   RESEND_API_KEY=re_your_key
-   RESEND_FROM_EMAIL=FlowOptix <you@yourdomain.com>
-   NOTIFY_EMAIL=your-inbox@example.com
-   OPENROUTER_API_KEY=your-openrouter-key
-   ```
+### 3. Frontend environment
 
-5. **Generate the ML model weights**
+Create `frontend/.env`:
 
-   ```bash
-   npm run train:model
-   ```
+```env
+EXPO_PUBLIC_API_URL=https://flowoptix.onrender.com
+EXPO_PUBLIC_SITE_URL=https://flowoptix-ten.vercel.app
+```
 
-   This runs `train_model.js` and writes `model_weights.json`. Re-run whenever you add training data.
+Without this file `npx expo start` falls back to `localhost:3000` and every backend call fails. (`eas.json` already supplies these for EAS builds; the `.env` file is only needed for local development.)
 
-6. **Start the server**
+### 4. Train the ML model
 
-   ```bash
-   npm start
-   ```
+```bash
+npm run train:model
+```
 
-   The API listens on port 3000 by default.
+Runs `train_model.js` and writes `model_weights.json`. Re-run after adding training examples.
+
+### 5. Start the backend
+
+```bash
+npm start
+```
+
+API listens on port 3000. Check the startup log for config warnings before testing.
+
+### 6. Start the frontend
+
+```bash
+cd frontend && npx expo start
+```
+
+Press `w` for web, `a` for Android emulator, or scan the QR code with Expo Go.
 
 ## API Endpoints
 
@@ -73,47 +127,42 @@ FlowOptix is a productivity intelligence platform that automatically logs and ca
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/tasks/log` | Save a task to Supabase and fire an email notification via Resend |
-| `GET` | `/tasks/:user_id` | Fetch all tasks for a user, newest first |
-| `POST` | `/tasks/auto-log` | Bulk-insert tasks from browser extension or screen-time source |
-| `DELETE` | `/tasks/:id` | Delete a single task by ID |
+| `POST` | `/tasks/log` | Save a task, set `started_at`/`ended_at`/`duration_seconds`, trigger Resend email |
+| `GET` | `/tasks/:user_id` | Fetch all tasks, newest first |
+| `POST` | `/tasks/auto-log` | Bulk insert from browser extension or screen-time source |
+| `DELETE` | `/tasks/:id` | Delete a task |
 
-**POST /tasks/log — request body**
-
+**POST /tasks/log body:**
 ```json
-{ "user_id": "<uuid>", "task_name": "Write quarterly report", "category": "reporting" }
+{ "user_id": "<uuid>", "task_name": "Write quarterly report", "category": "reporting", "duration": 1800 }
 ```
 
 ### ML Prediction
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/predict/category` | Predict the category of a task name using the Naive Bayes model |
+| `POST` | `/predict/category` | Predict task category from name using the Naive Bayes model |
 
-**Request / response**
-
+**Body / response:**
 ```json
-// POST /predict/category
-{ "task_name": "Send email to client" }
-
-// Response
-{ "task_name": "Send email to client", "category": "communication", "confidence": 0.62 }
+{ "task_name": "Send weekly digest" }
+{ "task_name": "Send weekly digest", "category": "communication", "confidence": 0.78 }
 ```
 
 ### Patterns & Productivity
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/patterns/:user_id` | Detect recurring task patterns with AI analysis |
-| `GET` | `/productivity/:user_id` | Return a productivity score (0–100) with AI insight |
+| `GET` | `/patterns/:user_id` | Detect recurring patterns with AI analysis |
+| `GET` | `/productivity/:user_id` | Productivity score (0–100) with AI insight |
 
 ### AI Chat
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/chat` | Send a message to the AI assistant; it has full context of the user's tasks, patterns, and integrations |
+| `POST` | `/chat` | Claude assistant with full context of the user's tasks, patterns, and integrations |
 
-**Request body:** `{ "user_id": "<uuid>", "message": "What are my most repetitive tasks?" }`
+**Body:** `{ "user_id": "<uuid>", "message": "What are my most repetitive tasks?" }`
 
 ### Integrations
 
@@ -121,38 +170,49 @@ FlowOptix is a productivity intelligence platform that automatically logs and ca
 |---|---|---|
 | `GET` | `/gmail/authorize?user_id=` | Start Gmail OAuth flow |
 | `GET` | `/calendar/authorize?user_id=` | Start Google Calendar OAuth flow |
-| `GET` | `/gmail/analyze/:user_id` | Scan inbox for patterns and auto-log tasks |
-| `GET` | `/calendar/analyze/:user_id` | Scan calendar for patterns and auto-log tasks |
+| `GET` | `/gmail/analyze/:user_id` | Scan inbox, auto-log task patterns |
+| `GET` | `/calendar/analyze/:user_id` | Scan calendar, auto-log meeting patterns |
+
+### Execution & Automation
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/execute/email` | Send email via Resend |
+| `POST` | `/execute/automation` | Run an automation rule |
+| `GET` | `/execute/history/:user_id` | Fetch execution log |
+| `POST` | `/automation/rules` | Create an automation rule |
 
 ## Testing
 
 ### Task logging + email notification
 
-Requires a valid Supabase user UUID and the server running with `RESEND_API_KEY` and `NOTIFY_EMAIL` set.
-
 ```bash
-TEST_USER_ID=<your-supabase-user-uuid> node test_email.js
+TEST_USER_ID=<supabase-user-uuid> node test_email.js
 ```
 
 Find your UUID in Supabase → Authentication → Users.
 
-### ML category prediction (live endpoint)
+### ML category prediction
 
 ```bash
 node test_prediction.js
 ```
 
-Hits `https://flowoptix.onrender.com/predict/category` with five sample tasks and prints pass/fail.
+Hits the live Render endpoint with five sample tasks and prints pass/fail.
 
 ### Retraining the ML model
 
 ```bash
 npm run train:model          # JS trainer — no Python required
-npm run train:model:sklearn  # scikit-learn trainer — fetches real Supabase data
+npm run train:model:sklearn  # scikit-learn trainer — fetches live Supabase data
 ```
 
 ## Known Limitations
 
-- **Resend sandbox sender** (`onboarding@resend.dev`) can only deliver to the address that owns the Resend account. Add and verify a custom domain in Resend to send to any recipient.
-- **Render free tier cold-start** — the server sleeps after 15 minutes of inactivity and takes ~50 s to wake. Use an uptime monitor (e.g. UptimeRobot, Better Uptime) to ping the health endpoint every 10 minutes.
-- **Anon-key writes** — the backend uses the Supabase anon key for task inserts, which means RLS policies must permit anon writes to `task_logs` for the API to work. Tighten this by passing the user's JWT from the frontend instead.
+- **No API authentication.** The backend uses the service-role key, so any caller who knows a user's UUID can read or delete their data via `GET /tasks/:user_id` or `DELETE /users/:user_id/data`. Fix direction: verify the Supabase JWT on each request and reject requests whose token subject does not match the requested `user_id`.
+
+- **Resend sandbox restriction.** `onboarding@resend.dev` only delivers to the email address the Resend account was registered with. Sending to any other recipient requires verifying a custom domain in Resend and setting `RESEND_FROM_EMAIL` to an address on that domain.
+
+- **Render free-tier cold starts.** The service spins down after inactivity, causing an approximately 50-second cold start on the next request. Mitigated by a cron-job.org job that pings `GET /` every 15 minutes.
+
+- **Duplicated automation routing.** `patterns.tsx` re-implements the backend's automation routing locally instead of calling `POST /execute/automation`, so the frontend and backend copies of that logic can drift apart independently.
