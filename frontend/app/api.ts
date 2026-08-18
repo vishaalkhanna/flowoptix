@@ -25,16 +25,17 @@ export const sendEmail = async (to: string, subject: string, body: string): Prom
 // ── Execution Logs ─────────────────────────────────────────────────────────
 export const logExecution = async (
     action_type: string,
-    _action_details: Record<string, any>,
+    action_details: Record<string, any>,
     status: 'success' | 'failed',
-    action_description?: string,
+    action_name?: string,
 ): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from('execution_logs').insert({
         user_id: user.id,
         action_type,
-        action_description: action_description ?? action_type,
+        action_details,
+        action_name: action_name ?? action_type,
         status,
     });
     if (error) console.error('[execution_logs] insert error:', error.message);
@@ -47,7 +48,7 @@ export const getExecutionHistory = async (): Promise<any[]> => {
         .from('execution_logs')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('executed_at', { ascending: false })
         .limit(100);
     if (error) throw error;
     return data ?? [];
@@ -82,7 +83,7 @@ export const getTasks = async () => {
     if (!user) throw new Error('Not authenticated');
     const { data, error } = await supabase
         .from('task_logs').select('*').eq('user_id', user.id)
-        .order('created_at', { ascending: false }).limit(50);
+        .order('started_at', { ascending: false }).limit(50);
     if (error) throw error;
     return { data: { tasks: data } };
 };
@@ -178,13 +179,13 @@ export const exportTasksCSV = async (): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     const { data, error } = await supabase
-        .from('task_logs').select('id, task_name, category, source, created_at').eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from('task_logs').select('id, task_name, category, source, duration_seconds, started_at, ended_at').eq('user_id', user.id)
+        .order('started_at', { ascending: false });
     if (error) throw error;
     const rows = data ?? [];
-    const header = 'task_name,category,source,created_at';
+    const header = 'task_name,category,source,duration_seconds,started_at,ended_at';
     const lines = rows.map((r: any) =>
-        [r.task_name, r.category, r.source, r.created_at]
+        [r.task_name, r.category, r.source, r.duration_seconds, r.started_at, r.ended_at]
             .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`)
             .join(',')
     );
