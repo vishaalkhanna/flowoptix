@@ -45,13 +45,22 @@ function predictCategory(taskName) {
         return { category: 'general', confidence: 0 };
     }
     const text = taskName.toLowerCase();
+    const tokens = text.split(/\s+/).filter(Boolean);
+
+    // If no token appears in any class vocabulary the model has no signal —
+    // return general/0 rather than a confident-looking prior-only prediction.
+    const hasVocabHit = tokens.some(word =>
+        Object.values(modelWeights.categoryWeights).some(w => w.vocab[word])
+    );
+    if (!hasVocabHit) return { category: 'general', confidence: 0 };
+
     let maxScore = -Infinity;
     let predictedCategory = 'general';
     let confidence = 0;
 
     for (const [category, weights] of Object.entries(modelWeights.categoryWeights)) {
         let score = weights.prior;
-        for (const word of text.split(/\s+/)) {
+        for (const word of tokens) {
             if (weights.vocab[word]) {
                 score += weights.vocab[word];
             }

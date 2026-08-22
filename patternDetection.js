@@ -64,14 +64,31 @@ function calculateProductivityScore(taskLogs) {
 
     const totalTasks = taskLogs.length;
     const patterns = detectPatterns(taskLogs);
-    const repetitiveCount = patterns.reduce((sum, p) => sum + p.frequency, 0);
+
+    // Count DISTINCT task positions covered by at least one repeated pattern.
+    // Summing p.frequency overcounts because overlapping 2-gram and 3-gram
+    // patterns share positions — e.g. 20 identical tasks yield frequency 19+18=37,
+    // pushing repetitiveCount above totalTasks and unique_tasks below zero.
+    const repetitivePositions = new Set();
+    for (const p of patterns) {
+        const seqLen = p.task_sequence.length;
+        for (let i = 0; i <= taskLogs.length - seqLen; i++) {
+            const match = p.task_sequence.every(
+                (name, j) => taskLogs[i + j].task_name === name
+            );
+            if (match) {
+                for (let j = 0; j < seqLen; j++) repetitivePositions.add(i + j);
+            }
+        }
+    }
+    const repetitiveCount = repetitivePositions.size;
     const repetitiveRatio = repetitiveCount / totalTasks;
 
     // Higher score = more productive (less repetitive work)
     const score = Math.round((1 - repetitiveRatio * 0.5) * 100);
 
     return {
-        score: Math.min(Math.max(score, 0), 100), // clamp 0-100
+        score: Math.min(Math.max(score, 0), 100),
         tasks_completed: totalTasks,
         repetitive_count: repetitiveCount,
         breakdown: {

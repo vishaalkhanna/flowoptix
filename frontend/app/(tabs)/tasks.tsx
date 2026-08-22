@@ -185,8 +185,8 @@ export default function TaskLogger() {
             await logTask(timerTask.trim(), timerCat.trim() || 'general', duration);
             showToast(`Saved "${timerTask}" — ${formatTime(duration)}`, 'success');
             setTimerTask(''); setTimerCat(''); setElapsed(0);
-        } catch {
-            showToast('Could not save task', 'error');
+        } catch (err: any) {
+            showToast(err?.message || 'Could not save task', 'error');
         } finally {
             setSavingTimer(false);
         }
