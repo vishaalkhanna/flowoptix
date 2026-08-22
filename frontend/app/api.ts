@@ -1,3 +1,4 @@
+import { Platform, Linking } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
@@ -238,7 +239,11 @@ export const connectGmail = async (): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     const url = `${BACKEND_URL}/gmail/authorize?user_id=${user.id}`;
-    if (typeof window !== 'undefined') window.open(url, '_blank', 'width=500,height=650');
+    if (Platform.OS === 'web') {
+        window.open(url, '_blank', 'width=500,height=650');
+    } else {
+        await Linking.openURL(url);
+    }
 };
 
 export const analyzeGmail = async (): Promise<{ patterns: any[]; tasks_logged: number }> => {
@@ -253,7 +258,11 @@ export const connectCalendar = async (): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
     const url = `${BACKEND_URL}/calendar/authorize?user_id=${user.id}`;
-    if (typeof window !== 'undefined') window.open(url, '_blank', 'width=500,height=650');
+    if (Platform.OS === 'web') {
+        window.open(url, '_blank', 'width=500,height=650');
+    } else {
+        await Linking.openURL(url);
+    }
 };
 
 export const analyzeCalendar = async (): Promise<{ patterns: any[]; tasks_logged: number; meeting_percent: number }> => {

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
+    ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Linking,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { chatWithAI } from '../api';
@@ -61,14 +61,22 @@ export default function Chat() {
         }
     };
 
-    const handleAction = (actionId: string) => {
+    const handleAction = async (actionId: string) => {
         const urls: Record<string, string> = {
             vscode: 'https://vscode.dev',
             sheets: 'https://docs.google.com/spreadsheets',
             calendar: 'https://calendar.google.com',
         };
-        if (urls[actionId] && typeof window !== 'undefined') {
-            window.open(urls[actionId], '_blank');
+        if (!urls[actionId]) return;
+        try {
+            const supported = await Linking.canOpenURL(urls[actionId]);
+            if (!supported) throw new Error('no handler');
+            await Linking.openURL(urls[actionId]);
+        } catch {
+            setMessages(prev => [...prev, {
+                role: 'ai',
+                text: "I couldn't open that link on this device. Try opening it manually in your browser.",
+            }]);
         }
     };
 

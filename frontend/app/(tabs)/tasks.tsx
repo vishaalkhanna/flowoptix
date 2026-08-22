@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    Alert, ScrollView, ActivityIndicator, Platform,
+    Alert, ScrollView, ActivityIndicator, Platform, Linking,
 } from 'react-native';
 import { logTask, logExecution, exportTasksCSV } from '../api';
 import { useTheme } from '../../context/ThemeContext';
@@ -118,7 +118,9 @@ export default function TaskLogger() {
         if (!action) return;
 
         if (action.type === 'url' && action.url) {
-            if (typeof window !== 'undefined') window.open(action.url, '_blank');
+            const supported = await Linking.canOpenURL(action.url);
+            if (!supported) { showToast(`Cannot open ${taskNameKey}`, 'error'); return; }
+            await Linking.openURL(action.url);
             await logExecution('open_app', { url: action.url }, 'success', `Opened ${taskNameKey}`);
             showToast(`✓ Logged + ${taskNameKey} opened`, 'success');
         } else if (action.type === 'email') {

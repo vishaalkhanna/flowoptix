@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { getPatterns, analyzePatterns, logExecution } from '../api';
 import { useTheme } from '../../context/ThemeContext';
 import Toast, { ToastType } from '../../components/Toast';
@@ -18,8 +18,10 @@ export default function Patterns() {
     const [emailModal, setEmailModal] = useState(false);
     const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
 
-    const openUrl = (url: string) => {
-        if (typeof window !== 'undefined') window.open(url, '_blank');
+    const openUrl = async (url: string) => {
+        const supported = await Linking.canOpenURL(url);
+        if (!supported) throw new Error(`Cannot open ${url}`);
+        await Linking.openURL(url);
     };
 
     const executePattern = async (p: any, i: number) => {
@@ -27,23 +29,23 @@ export default function Patterns() {
         try {
             const name: string = (p.pattern_name ?? '').toLowerCase();
             if (name.includes('file') || name.includes('excel') || name.includes('data') || name.includes('spread')) {
-                openUrl('https://docs.google.com/spreadsheets');
+                await openUrl('https://docs.google.com/spreadsheets');
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_sheets' }, 'success');
                 showToast('Google Sheets opened', 'success');
             } else if (name.includes('communication') || name.includes('email') || name.includes('slack') || name.includes('message')) {
                 setEmailModal(true);
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'email_draft' }, 'success');
             } else if (name.includes('dev') || name.includes('code') || name.includes('pr') || name.includes('git')) {
-                openUrl('https://vscode.dev');
-                openUrl('https://github.com');
+                await openUrl('https://vscode.dev');
+                await openUrl('https://github.com');
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_dev_tools' }, 'success');
                 showToast('VS Code + GitHub opened', 'success');
             } else if (name.includes('meet') || name.includes('call') || name.includes('calendar')) {
-                openUrl('https://calendar.google.com');
+                await openUrl('https://calendar.google.com');
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_calendar' }, 'success');
                 showToast('Google Calendar opened', 'success');
             } else {
-                openUrl('https://flowoptix-ten.vercel.app');
+                await openUrl('https://flowoptix-ten.vercel.app');
                 await logExecution('pattern_automation', { pattern: p.pattern_name, action: 'open_productivity_hub' }, 'success');
                 showToast('Opening FlowOptix dashboard', 'info');
             }

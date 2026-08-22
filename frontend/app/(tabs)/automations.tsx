@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    ActivityIndicator, Switch, TextInput, Modal,
+    ActivityIndicator, Switch, TextInput, Modal, Linking,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -62,8 +62,10 @@ export default function Automations() {
         setLoadingHistory(false);
     };
 
-    const openUrl = (url: string) => {
-        if (typeof window !== 'undefined') window.open(url, '_blank');
+    const openUrl = async (url: string) => {
+        const supported = await Linking.canOpenURL(url);
+        if (!supported) throw new Error(`Cannot open ${url}`);
+        await Linking.openURL(url);
     };
 
     const runQuickAction = async (id: string) => {
@@ -71,11 +73,11 @@ export default function Automations() {
         try {
             if (id === 'email') { setEmailModal(true); setExecuting(null); return; }
             if (id === 'sheets') {
-                openUrl('https://docs.google.com/spreadsheets');
+                await openUrl('https://docs.google.com/spreadsheets');
                 await logExecution('open_app', { url: 'https://docs.google.com/spreadsheets' }, 'success', 'Opened Google Sheets');
                 showToast('Google Sheets opened', 'success');
             } else if (id === 'calendar') {
-                openUrl('https://calendar.google.com');
+                await openUrl('https://calendar.google.com');
                 await logExecution('open_app', { url: 'https://calendar.google.com' }, 'success', 'Opened Google Calendar');
                 showToast('Google Calendar opened', 'success');
             } else if (id === 'report') {
@@ -89,7 +91,7 @@ export default function Automations() {
                     { url: 'https://mail.google.com',  name: 'Gmail' },
                     { url: 'https://docs.google.com',  name: 'Docs' },
                 ];
-                apps.forEach((a, i) => setTimeout(() => openUrl(a.url), i * 350));
+                apps.forEach((a, i) => setTimeout(() => Linking.openURL(a.url).catch(() => {}), i * 350));
                 await logExecution('open_app', { apps: apps.map(a => a.name) }, 'success', 'Opened workspace (4 apps)');
                 showToast('Workspace launching — 4 apps opening!', 'success');
             } else if (id === 'run_all') {
