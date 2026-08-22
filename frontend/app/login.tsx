@@ -17,7 +17,7 @@ const CALLBACK_URL = `${SITE_URL}/auth/callback`;
 const TAGLINE      = 'Your productivity intelligence';
 
 // ─── Web CSS ──────────────────────────────────────────────────────────────────
-if (Platform.OS === 'web' && typeof document !== 'undefined') {
+if (Platform.OS === 'web') {
     const el = document.createElement('style');
     el.textContent = `
         @keyframes aurora1 {

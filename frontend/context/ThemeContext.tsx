@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const darkColors = {
     bg: '#0A0A0F',
@@ -48,20 +49,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [isDark, setIsDark] = useState(true);
 
     useEffect(() => {
-        // Load saved preference from localStorage on web
-        if (typeof window !== 'undefined') {
-            const saved = window.localStorage.getItem('flowoptix_theme');
-            if (saved) setIsDark(saved === 'dark');
-            else setIsDark(systemScheme !== 'light');
-        }
+        (async () => {
+            try {
+                const saved = await AsyncStorage.getItem('flowoptix_theme');
+                if (saved) setIsDark(saved === 'dark');
+                else setIsDark(systemScheme !== 'light');
+            } catch {
+                setIsDark(systemScheme !== 'light');
+            }
+        })();
     }, []);
 
     const toggleTheme = () => {
         setIsDark(prev => {
             const next = !prev;
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem('flowoptix_theme', next ? 'dark' : 'light');
-            }
+            AsyncStorage.setItem('flowoptix_theme', next ? 'dark' : 'light').catch(() => {});
             return next;
         });
     };
