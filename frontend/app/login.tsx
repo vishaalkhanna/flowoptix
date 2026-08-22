@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Step = 'landing' | 'email' | 'otp';
+type Step = 'landing' | 'email' | 'otp' | 'password';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SITE_URL     = process.env.EXPO_PUBLIC_SITE_URL || 'https://flowoptix-ten.vercel.app';
@@ -136,8 +136,9 @@ const wc = (...c: string[]) => Platform.OS === 'web' ? ({ className: c.join(' ')
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
     const router = useRouter();
-    const [step, setStep]           = useState<Step>('landing');
+    const [step, setStep]           = useState<Step>(Platform.OS === 'web' ? 'landing' : 'password');
     const [email, setEmail]         = useState('');
+    const [password, setPassword]   = useState('');
     const [loading, setLoading]     = useState(false);
     const [error, setError]         = useState('');
     const [typeText, setTypeText]   = useState('');
@@ -264,70 +265,79 @@ export default function LoginScreen() {
         else setStep('otp');
     };
 
+    const signInWithPassword = async () => {
+        if (!email.trim()) { setError('Please enter your email.'); return; }
+        if (!password) { setError('Please enter your password.'); return; }
+        setLoading(true); setError('');
+        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        setLoading(false);
+        if (err) setError(err.message);
+    };
+
     // ─── Card inner content (shared between web wrapper and native) ───────────
     const cardContent = (
         <>
             {/* Heading */}
             <Text style={s.cardTitle}>
-                {step === 'landing' ? 'Welcome back' :
-                 step === 'email'   ? 'Enter your email' : 'Check your inbox'}
+                {step === 'landing'  ? 'Welcome back' :
+                 step === 'email'    ? 'Enter your email' :
+                 step === 'password' ? 'Sign in' : 'Check your inbox'}
             </Text>
             <Text style={s.cardSub}>
-                {step === 'landing' ? 'Sign in to continue your flow' :
-                 step === 'email'   ? "We'll send a magic link — no password" :
-                                     `Link sent to ${email}`}
+                {step === 'landing'  ? 'Sign in to continue your flow' :
+                 step === 'email'    ? "We'll send a magic link — no password" :
+                 step === 'password' ? 'Enter your email and password' :
+                                      `Link sent to ${email}`}
             </Text>
 
             {/* ── LANDING ── */}
             {step === 'landing' && (
                 <Animated.View style={[s.btnGroup, { opacity: btnsOpacity }]}>
 
-                    {/* Google — gradient on web, purple solid on native */}
-                    <Pressable
-                        onPressIn={() => pressIn(googleScale)}
-                        onPressOut={() => pressOut(googleScale)}
-                        onPress={signInWithGoogle}
-                        style={{ width: '100%' }}
-                    >
-                        <Animated.View
-                            style={[s.googleBtn, { transform: [{ scale: googleScale }] },
-                                    Platform.OS !== 'web' && s.googleBtnNative]}
-                            {...wc('fo-google')}
+                    {/* Google — web only */}
+                    {Platform.OS === 'web' && (
+                        <Pressable
+                            onPressIn={() => pressIn(googleScale)}
+                            onPressOut={() => pressOut(googleScale)}
+                            onPress={signInWithGoogle}
+                            style={{ width: '100%' }}
                         >
-                            <Text style={s.gIcon}>G</Text>
-                            <Text style={s.googleText}>Continue with Google</Text>
-                        </Animated.View>
-                    </Pressable>
+                            <Animated.View
+                                style={[s.googleBtn, { transform: [{ scale: googleScale }] }]}
+                                {...wc('fo-google')}
+                            >
+                                <Text style={s.gIcon}>G</Text>
+                                <Text style={s.googleText}>Continue with Google</Text>
+                            </Animated.View>
+                        </Pressable>
+                    )}
 
-                    <View style={s.divider}>
-                        <View style={s.divLine} />
-                        <Text style={s.divLabel}>or</Text>
-                        <View style={s.divLine} />
-                    </View>
+                    {Platform.OS === 'web' && (
+                        <View style={s.divider}>
+                            <View style={s.divLine} />
+                            <Text style={s.divLabel}>or</Text>
+                            <View style={s.divLine} />
+                        </View>
+                    )}
 
-                    {/* Email button — gradient border on web, outlined on native */}
-                    <Pressable
-                        onPressIn={() => pressIn(emailBtnScale)}
-                        onPressOut={() => pressOut(emailBtnScale)}
-                        onPress={() => { setError(''); setStep('email'); }}
-                        style={{ width: '100%' }}
-                    >
-                        <Animated.View style={{ transform: [{ scale: emailBtnScale }], width: '100%' }}>
-                            {Platform.OS === 'web' ? (
+                    {/* Email magic-link button — web only */}
+                    {Platform.OS === 'web' && (
+                        <Pressable
+                            onPressIn={() => pressIn(emailBtnScale)}
+                            onPressOut={() => pressOut(emailBtnScale)}
+                            onPress={() => { setError(''); setStep('email'); }}
+                            style={{ width: '100%' }}
+                        >
+                            <Animated.View style={{ transform: [{ scale: emailBtnScale }], width: '100%' }}>
                                 <View {...wc('fo-email-wrap')}>
                                     <View {...wc('fo-email-inner')} style={s.emailBtnInner}>
                                         <Ionicons name="mail-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
                                         <Text style={s.emailBtnText}>Sign in with Email</Text>
                                     </View>
                                 </View>
-                            ) : (
-                                <View style={s.emailBtnNative}>
-                                    <Ionicons name="mail-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
-                                    <Text style={s.emailBtnText}>Sign in with Email</Text>
-                                </View>
-                            )}
-                        </Animated.View>
-                    </Pressable>
+                            </Animated.View>
+                        </Pressable>
+                    )}
 
                     <View style={s.termsRow}>
                         <Text style={s.terms}>No password needed · By continuing you agree to our </Text>
@@ -424,6 +434,83 @@ export default function LoginScreen() {
                     <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap}>
                         <Text style={s.backText}>← Change email</Text>
                     </Pressable>
+                </Animated.View>
+            )}
+
+            {/* ── PASSWORD ── */}
+            {step === 'password' && (
+                <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+                    <Animated.View style={[s.inputWrap, { borderBottomColor: inputBorderColor }]}>
+                        <Ionicons
+                            name="mail-outline" size={16}
+                            color={focused ? '#A855F7' : 'rgba(255,255,255,0.3)'}
+                            style={{ marginRight: 10 }}
+                        />
+                        <TextInput
+                            style={s.input}
+                            placeholder="you@example.com"
+                            placeholderTextColor="rgba(255,255,255,0.28)"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            secureTextEntry={false}
+                            value={email}
+                            onChangeText={t => { setEmail(t); setError(''); }}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            editable={!loading}
+                            {...(Platform.OS === 'web' ? wc('fo-input') : {})}
+                        />
+                    </Animated.View>
+
+                    <Animated.View style={[s.inputWrap, { borderBottomColor: inputBorderColor, marginTop: 16 }]}>
+                        <Ionicons
+                            name="lock-closed-outline" size={16}
+                            color={focused ? '#A855F7' : 'rgba(255,255,255,0.3)'}
+                            style={{ marginRight: 10 }}
+                        />
+                        <TextInput
+                            style={s.input}
+                            placeholder="Password"
+                            placeholderTextColor="rgba(255,255,255,0.28)"
+                            secureTextEntry={true}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            value={password}
+                            onChangeText={t => { setPassword(t); setError(''); }}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            editable={!loading}
+                            {...(Platform.OS === 'web' ? wc('fo-input') : {})}
+                        />
+                    </Animated.View>
+
+                    {!!error && <Text style={s.errText}>{error}</Text>}
+
+                    <Pressable
+                        onPressIn={() => pressIn(submitScale)}
+                        onPressOut={() => pressOut(submitScale)}
+                        onPress={signInWithPassword}
+                        disabled={loading}
+                        style={{ width: '100%' }}
+                    >
+                        <Animated.View style={[s.submitBtn, loading && s.btnDisabled,
+                                               { transform: [{ scale: submitScale }] }]}>
+                            {loading
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <>
+                                    <Ionicons name="log-in-outline" size={15} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={s.submitText}>Sign in</Text>
+                                  </>
+                            }
+                        </Animated.View>
+                    </Pressable>
+
+                    {Platform.OS === 'web' && (
+                        <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
+                            <Text style={s.backText}>← Back</Text>
+                        </Pressable>
+                    )}
                 </Animated.View>
             )}
         </>
