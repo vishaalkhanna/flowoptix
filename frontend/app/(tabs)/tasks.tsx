@@ -3,11 +3,19 @@ import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
     Alert, ScrollView, ActivityIndicator, Platform, Linking,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { logTask, logExecution, exportTasksCSV } from '../api';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import Toast, { ToastType } from '../../components/Toast';
 import EmailModal from '../../components/EmailModal';
+
+const haptic = {
+    light:   () => { if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); },
+    medium:  () => { if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); },
+    success: () => { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); },
+    error:   () => { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); },
+};
 
 // ── action map ─────────────────────────────────────────────────────────────
 type ActionType = 'url' | 'email' | 'file_picker' | 'report' | 'workspace';
@@ -75,14 +83,12 @@ export default function TaskLogger() {
     // log tab
     const [taskName, setTaskName] = useState('');
     const [category, setCategory] = useState('');
-    const [logging, setLogging] = useState(false);
 
     // timer tab
     const [timerRunning, setTimerRunning] = useState(false);
     const [elapsed, setElapsed] = useState(0);
     const [timerTask, setTimerTask] = useState('');
     const [timerCat, setTimerCat] = useState('');
-    const [savingTimer, setSavingTimer] = useState(false);
     const startTime = useRef(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -147,29 +153,52 @@ export default function TaskLogger() {
         }
     };
 
-    const handleLog = async (name = taskName, cat = category) => {
-        if (!name.trim()) return Alert.alert('Task name required', 'Please enter a task name');
-        setLogging(true);
-        try {
-            await logTask(name.trim(), cat || 'general', 30);
-            const action = TASK_ACTIONS[name];
-            if (!action) {
-                showToast(`✓ "${name}" logged`, 'success');
-            } else if (action.type !== 'email') {
-                await executeAction(name);
-            } else {
-                await executeAction(name);
-            }
-            setTaskName(''); setCategory('');
-        } catch (err: any) {
-            showToast(err?.message || 'Could not log task — please try again.', 'error');
-        } finally {
-            setLogging(false);
+    const handleLog = (name = taskName, cat = category) => {
+        const trimmed = name.trim();
+        if (!trimmed) return Alert.alert('Task name required', 'Please enter a task name');
+
+        haptic.light();
+
+        // Optimistic: show row and clear inputs immediately
+        const tempId = `temp-${Date.now()}`;
+        setAllTasks(prev => [{
+            id: tempId,
+            task_name: trimmed,
+            category: cat || 'general',
+            duration_seconds: 30,
+            started_at: new Date().toISOString(),
+            source: 'manual',
+            _pending: true,
+        }, ...prev]);
+        setTaskName(''); setCategory('');
+
+        // Trigger URL/email/etc. action without blocking
+        const action = TASK_ACTIONS[trimmed];
+        if (!action) {
+            showToast(`✓ "${trimmed}" logged`, 'success');
+        } else {
+            executeAction(trimmed);
         }
+
+        // Background network call — replace or remove temp row on settle
+        logTask(trimmed, cat || 'general', 30)
+            .then(result => {
+                const real = result?.task as any;
+                setAllTasks(prev => prev.map(t =>
+                    t.id === tempId ? (real ?? { ...t, _pending: false }) : t
+                ));
+                haptic.success();
+            })
+            .catch((err: any) => {
+                setAllTasks(prev => prev.filter(t => t.id !== tempId));
+                showToast(err?.message || 'Could not log task — please try again.', 'error');
+                haptic.error();
+            });
     };
 
     const startTimer = () => {
         if (!timerTask.trim()) { showToast('Enter a task name first', 'info'); return; }
+        haptic.medium();
         startTime.current = Date.now();
         setElapsed(0);
         setTimerRunning(true);
@@ -178,20 +207,42 @@ export default function TaskLogger() {
         }, 1000);
     };
 
-    const stopTimer = async () => {
+    const stopTimer = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         setTimerRunning(false);
         const duration = Math.max(elapsed, 1);
-        setSavingTimer(true);
-        try {
-            await logTask(timerTask.trim(), timerCat.trim() || 'general', duration);
-            showToast(`Saved "${timerTask}" — ${formatTime(duration)}`, 'success');
-            setTimerTask(''); setTimerCat(''); setElapsed(0);
-        } catch (err: any) {
-            showToast(err?.message || 'Could not save task', 'error');
-        } finally {
-            setSavingTimer(false);
-        }
+        const name = timerTask.trim();
+        const cat = timerCat.trim() || 'general';
+
+        haptic.medium();
+
+        // Optimistic: show row and clear inputs immediately
+        const tempId = `temp-${Date.now()}`;
+        setAllTasks(prev => [{
+            id: tempId,
+            task_name: name,
+            category: cat,
+            duration_seconds: duration,
+            started_at: new Date().toISOString(),
+            source: 'manual',
+            _pending: true,
+        }, ...prev]);
+        setTimerTask(''); setTimerCat(''); setElapsed(0);
+
+        logTask(name, cat, duration)
+            .then(result => {
+                const real = result?.task as any;
+                setAllTasks(prev => prev.map(t =>
+                    t.id === tempId ? (real ?? { ...t, _pending: false }) : t
+                ));
+                showToast(`Saved "${name}" — ${formatTime(duration)}`, 'success');
+                haptic.success();
+            })
+            .catch((err: any) => {
+                setAllTasks(prev => prev.filter(t => t.id !== tempId));
+                showToast(err?.message || 'Could not save task', 'error');
+                haptic.error();
+            });
     };
 
     const deleteTask = async (id: string) => {
@@ -284,9 +335,8 @@ export default function TaskLogger() {
                         style={s.input} placeholder="e.g. reporting"
                         placeholderTextColor={colors.muted} value={category} onChangeText={setCategory}
                     />
-                    <TouchableOpacity style={s.primaryBtn} onPress={() => handleLog()} disabled={logging}>
-                        {logging ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={s.primaryBtnText}>Log Task</Text>}
+                    <TouchableOpacity style={s.primaryBtn} onPress={() => handleLog()}>
+                        <Text style={s.primaryBtnText}>Log Task</Text>
                     </TouchableOpacity>
 
                     <Text style={s.sectionLabel}>QUICK LOG  <Text style={{ color: colors.muted, fontWeight: '400', letterSpacing: 0 }}>— logs + launches the real app</Text></Text>
@@ -336,10 +386,9 @@ export default function TaskLogger() {
                     ) : (
                         <TouchableOpacity
                             style={[s.primaryBtn, { backgroundColor: '#EF4444' }]}
-                            onPress={stopTimer} disabled={savingTimer}
+                            onPress={stopTimer}
                         >
-                            {savingTimer ? <ActivityIndicator color="#fff" size="small" />
-                                : <Text style={s.primaryBtnText}>■  Stop & Save</Text>}
+                            <Text style={s.primaryBtnText}>■  Stop & Save</Text>
                         </TouchableOpacity>
                     )}
                     <View style={s.timerTips}>
@@ -394,8 +443,8 @@ export default function TaskLogger() {
                         ) : (
                             <>
                                 <Text style={s.historyCount}>{filtered.length} task{filtered.length !== 1 ? 's' : ''}</Text>
-                                {filtered.map((t, i) => (
-                                    <View key={i} style={s.historyRow}>
+                                {filtered.map(t => (
+                                    <View key={t.id} style={[s.historyRow, t._pending && { opacity: 0.6 }]}>
                                         <View style={[s.historyDot, { backgroundColor: catColor(t.category) }]} />
                                         <View style={{ flex: 1 }}>
                                             <Text style={s.historyName}>{t.task_name}</Text>
@@ -411,7 +460,7 @@ export default function TaskLogger() {
                                         <TouchableOpacity
                                             onPress={() => deleteTask(t.id)}
                                             style={s.deleteBtn}
-                                            disabled={deletingId === t.id}
+                                            disabled={!!t._pending || deletingId === t.id}
                                         >
                                             {deletingId === t.id
                                                 ? <ActivityIndicator color={colors.danger} size="small" />
