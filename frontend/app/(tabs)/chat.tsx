@@ -105,7 +105,7 @@ export default function Chat() {
                         </Text>
                         <View style={s.suggestionsGrid}>
                             {SUGGESTIONS.map((q, i) => (
-                                <TouchableOpacity key={i} style={s.suggestionChip} onPress={() => send(q.text)}>
+                                <TouchableOpacity key={i} style={s.suggestionChip} onPress={() => send(q.text)} testID={`chat-suggestion-${i}`} accessibilityLabel={`chat-suggestion-${i}`}>
                                     <Text style={s.suggestionIcon}>{q.icon}</Text>
                                     <Text style={s.suggestionText}>{q.text}</Text>
                                 </TouchableOpacity>
@@ -118,6 +118,8 @@ export default function Chat() {
                     <View
                         key={i}
                         style={[s.bubbleWrap, msg.role === 'user' ? s.bubbleWrapUser : s.bubbleWrapAI]}
+                        testID={`chat-message-${i}`}
+                        accessibilityLabel={`chat-message-${i}`}
                     >
                         {msg.role === 'ai' && (
                             <View style={s.aiAvatar}>
@@ -137,6 +139,8 @@ export default function Chat() {
                                         const entry = ACTION_KEYWORDS.find(a => a.action === msg.action);
                                         if (entry) handleAction(entry.actionId);
                                     }}
+                                    testID={`chat-action-${ACTION_KEYWORDS.find(a => a.action === msg.action)?.actionId ?? 'unknown'}`}
+                                    accessibilityLabel={`chat-action-${ACTION_KEYWORDS.find(a => a.action === msg.action)?.actionId ?? 'unknown'}`}
                                 >
                                     <Text style={s.actionBtnText}>{msg.action}</Text>
                                 </TouchableOpacity>
@@ -169,11 +173,15 @@ export default function Chat() {
                     returnKeyType="send"
                     blurOnSubmit
                     onSubmitEditing={() => send()}
+                    testID="chat-input"
+                    accessibilityLabel="chat-input"
                 />
                 <TouchableOpacity
                     style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnDisabled]}
                     onPress={() => send()}
                     disabled={!input.trim() || loading}
+                    testID="chat-send-button"
+                    accessibilityLabel="chat-send-button"
                 >
                     <Text style={s.sendBtnText}>↑</Text>
                 </TouchableOpacity>

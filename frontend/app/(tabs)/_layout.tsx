@@ -2,6 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 
+const tabOpts = (testId: string, title: string, icon: (args: any) => React.ReactNode): any => ({
+  title,
+  tabBarIcon: icon,
+  tabBarTestID: testId,
+  tabBarAccessibilityLabel: testId,
+});
+
 export default function TabLayout() {
   const { colors } = useTheme();
 
@@ -15,45 +22,27 @@ export default function TabLayout() {
     }}>
       <Tabs.Screen
         name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <Ionicons name="bar-chart" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-dashboard', 'Dashboard', ({ color }) => <Ionicons name="bar-chart" size={24} color={color} />)}
       />
       <Tabs.Screen
         name="tasks"
-        options={{
-          title: 'Log Task',
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-tasks', 'Log Task', ({ color }) => <Ionicons name="add-circle" size={24} color={color} />)}
       />
       <Tabs.Screen
         name="patterns"
-        options={{
-          title: 'Patterns',
-          tabBarIcon: ({ color }) => <Ionicons name="bulb" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-patterns', 'Patterns', ({ color }) => <Ionicons name="bulb" size={24} color={color} />)}
       />
       <Tabs.Screen
         name="automations"
-        options={{
-          title: 'Automate',
-          tabBarIcon: ({ color }) => <Ionicons name="flash" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-automate', 'Automate', ({ color }) => <Ionicons name="flash" size={24} color={color} />)}
       />
       <Tabs.Screen
         name="chat"
-        options={{
-          title: 'AI Chat',
-          tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-chat', 'AI Chat', ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} />)}
       />
       <Tabs.Screen
         name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person-circle" size={24} color={color} />,
-        }}
+        options={tabOpts('tab-profile', 'Profile', ({ color }) => <Ionicons name="person-circle" size={24} color={color} />)}
       />
     </Tabs>
   );

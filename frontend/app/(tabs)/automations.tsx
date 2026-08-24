@@ -190,6 +190,8 @@ export default function Automations() {
                             style={[s.quickCard, { borderColor: qa.color + '40' }]}
                             onPress={() => runQuickAction(qa.id)}
                             disabled={executing === qa.id}
+                            testID={`automations-action-${qa.id}`}
+                            accessibilityLabel={`automations-action-${qa.id}`}
                         >
                             {executing === qa.id
                                 ? <ActivityIndicator color={qa.color} size="small" style={{ marginBottom: 10 }} />
@@ -210,7 +212,7 @@ export default function Automations() {
                                     <Text style={s.autoName}>{p.pattern_name}</Text>
                                     <Text style={s.autoMeta}>×{p.frequency} occurrences · {Math.round(p.confidence_score * 100)}% confidence</Text>
                                 </View>
-                                <TouchableOpacity style={s.executeBtn} onPress={() => patternAction(p)}>
+                                <TouchableOpacity style={s.executeBtn} onPress={() => patternAction(p)} testID={`automations-run-${i}`} accessibilityLabel={`automations-run-${i}`}>
                                     <Text style={s.executeBtnText}>⚡ Execute Automation</Text>
                                 </TouchableOpacity>
                             </View>
@@ -221,7 +223,7 @@ export default function Automations() {
                 {/* MY AUTOMATION RULES */}
                 <View style={s.sectionHeader}>
                     <Text style={s.sectionLabel}>MY AUTOMATION RULES</Text>
-                    <TouchableOpacity style={s.addRuleBtn} onPress={() => setRuleModal(true)}>
+                    <TouchableOpacity style={s.addRuleBtn} onPress={() => setRuleModal(true)} testID="automations-add-rule-button" accessibilityLabel="automations-add-rule-button">
                         <Text style={s.addRuleBtnText}>+ New Rule</Text>
                     </TouchableOpacity>
                 </View>
@@ -229,13 +231,13 @@ export default function Automations() {
                     <View style={s.emptyCard}>
                         <Text style={s.emptyText}>No automation rules yet</Text>
                         <Text style={s.emptySubtext}>Create rules that trigger automatically when a pattern is detected</Text>
-                        <TouchableOpacity style={s.emptyAction} onPress={() => setRuleModal(true)}>
+                        <TouchableOpacity style={s.emptyAction} onPress={() => setRuleModal(true)} testID="automations-create-first-rule-button" accessibilityLabel="automations-create-first-rule-button">
                             <Text style={s.emptyActionText}>+ Create First Rule</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
                     rules.map(rule => (
-                        <View key={rule.id} style={s.ruleCard}>
+                        <View key={rule.id} style={s.ruleCard} testID={`automations-rule-${rule.id}`} accessibilityLabel={`automations-rule-${rule.id}`}>
                             <View style={s.ruleTop}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={s.ruleName}>{rule.rule_name}</Text>
@@ -245,9 +247,10 @@ export default function Automations() {
                                     )}
                                 </View>
                                 <Switch value={rule.is_active} onValueChange={() => toggleRule(rule)}
-                                    trackColor={{ false: colors.border, true: colors.accent }} thumbColor="#fff" />
+                                    trackColor={{ false: colors.border, true: colors.accent }} thumbColor="#fff"
+                                    testID={`automations-toggle-${rule.id}`} accessibilityLabel={`automations-toggle-${rule.id}`} />
                             </View>
-                            <TouchableOpacity style={s.deleteRuleBtn} onPress={() => removeRule(rule.id)} disabled={deletingRuleId === rule.id}>
+                            <TouchableOpacity style={s.deleteRuleBtn} onPress={() => removeRule(rule.id)} disabled={deletingRuleId === rule.id} testID={`automations-delete-${rule.id}`} accessibilityLabel={`automations-delete-${rule.id}`}>
                                 {deletingRuleId === rule.id
                                     ? <ActivityIndicator color={colors.danger} size="small" />
                                     : <Text style={s.deleteRuleBtnText}>Delete Rule</Text>}
@@ -259,7 +262,7 @@ export default function Automations() {
                 {/* EXECUTION HISTORY */}
                 <View style={s.sectionHeader}>
                     <Text style={s.sectionLabel}>EXECUTION HISTORY</Text>
-                    <TouchableOpacity onPress={loadHistory}>
+                    <TouchableOpacity onPress={loadHistory} testID="automations-refresh-history-button" accessibilityLabel="automations-refresh-history-button">
                         <Text style={{ color: colors.accent, fontSize: 13 }}>↻ Refresh</Text>
                     </TouchableOpacity>
                 </View>
@@ -291,7 +294,7 @@ export default function Automations() {
                                 </View>
                             </View>
                         ))}
-                        <TouchableOpacity style={s.clearHistoryBtn} onPress={handleClearHistory}>
+                        <TouchableOpacity style={s.clearHistoryBtn} onPress={handleClearHistory} testID="automations-clear-history-button" accessibilityLabel="automations-clear-history-button">
                             <Text style={s.clearHistoryText}>Clear History</Text>
                         </TouchableOpacity>
                     </>
@@ -307,23 +310,27 @@ export default function Automations() {
                         <Text style={s.modalTitle}>Create Automation Rule</Text>
                         <Text style={s.modalLabel}>RULE NAME</Text>
                         <TextInput style={s.modalInput} value={ruleName} onChangeText={setRuleName}
-                            placeholder="e.g. Auto-send daily report" placeholderTextColor={colors.muted} />
+                            placeholder="e.g. Auto-send daily report" placeholderTextColor={colors.muted}
+                            testID="automations-rule-name-input" accessibilityLabel="automations-rule-name-input" />
                         <Text style={s.modalLabel}>TRIGGER PATTERN</Text>
                         <TextInput style={s.modalInput} value={ruleTrigger} onChangeText={setRuleTrigger}
-                            placeholder="e.g. communication, file ops" placeholderTextColor={colors.muted} />
+                            placeholder="e.g. communication, file ops" placeholderTextColor={colors.muted}
+                            testID="automations-rule-trigger-input" accessibilityLabel="automations-rule-trigger-input" />
                         <Text style={s.modalLabel}>ACTION TYPE</Text>
                         <View style={s.actionTypeRow}>
                             {(['open_url', 'email', 'webhook'] as const).map(at => (
                                 <TouchableOpacity key={at}
                                     style={[s.actionTypeChip, ruleAction === at && s.actionTypeChipActive]}
-                                    onPress={() => setRuleAction(at)}>
+                                    onPress={() => setRuleAction(at)}
+                                    testID={`automations-action-type-${at.replace(/_/g, '-')}`}
+                                    accessibilityLabel={`automations-action-type-${at.replace(/_/g, '-')}`}>
                                     <Text style={[s.actionTypeText, ruleAction === at && s.actionTypeTextActive]}>
                                         {at === 'open_url' ? '↗ Open URL' : at === 'email' ? '✉ Email' : '⚡ Webhook'}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
-                        <TouchableOpacity style={s.saveRuleBtn} onPress={saveRule} disabled={savingRule}>
+                        <TouchableOpacity style={s.saveRuleBtn} onPress={saveRule} disabled={savingRule} testID="automations-save-rule-button" accessibilityLabel="automations-save-rule-button">
                             {savingRule ? <ActivityIndicator color="#fff" size="small" />
                                 : <Text style={s.saveRuleBtnText}>Save Rule</Text>}
                         </TouchableOpacity>

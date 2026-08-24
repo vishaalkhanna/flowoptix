@@ -196,17 +196,18 @@ export default function Profile() {
                             <TextInput
                                 style={s.nameInput} value={nameInput} onChangeText={setNameInput}
                                 autoFocus placeholder="Your name" placeholderTextColor={colors.muted}
+                                testID="profile-name-input" accessibilityLabel="profile-name-input"
                             />
-                            <TouchableOpacity style={s.saveBtn} onPress={saveName} disabled={savingName}>
+                            <TouchableOpacity style={s.saveBtn} onPress={saveName} disabled={savingName} testID="profile-save-name-button" accessibilityLabel="profile-save-name-button">
                                 {savingName ? <ActivityIndicator color="#fff" size="small" />
                                     : <Text style={s.saveBtnText}>Save</Text>}
                             </TouchableOpacity>
-                            <TouchableOpacity style={s.cancelBtn} onPress={() => setEditingName(false)}>
+                            <TouchableOpacity style={s.cancelBtn} onPress={() => setEditingName(false)} testID="profile-cancel-name-button" accessibilityLabel="profile-cancel-name-button">
                                 <Text style={s.cancelBtnText}>✕</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        <TouchableOpacity style={s.nameRow} onPress={() => setEditingName(true)}>
+                        <TouchableOpacity style={s.nameRow} onPress={() => setEditingName(true)} testID="profile-edit-name-button" accessibilityLabel="profile-edit-name-button">
                             <Text style={s.name}>{displayName}</Text>
                             <Text style={s.editIcon}>✎</Text>
                         </TouchableOpacity>
@@ -262,6 +263,8 @@ export default function Profile() {
                             onValueChange={toggleTheme}
                             trackColor={{ false: '#3A3A4A', true: colors.accent }}
                             thumbColor="#fff"
+                            testID="profile-dark-mode-switch"
+                            accessibilityLabel="profile-dark-mode-switch"
                         />
                     </View>
                 </View>
@@ -295,7 +298,7 @@ export default function Profile() {
                 <View style={s.section}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 }}>
                         <Text style={s.sectionTitle}>AUTO-DETECTION SOURCES</Text>
-                        <TouchableOpacity onPress={refreshIntegrations}>
+                        <TouchableOpacity onPress={refreshIntegrations} testID="profile-refresh-integrations-button" accessibilityLabel="profile-refresh-integrations-button">
                             <Text style={{ color: colors.accent, fontSize: 12 }}>↻ Refresh</Text>
                         </TouchableOpacity>
                     </View>
@@ -311,17 +314,17 @@ export default function Profile() {
                         </View>
                         {integrations.gmail ? (
                             <View style={{ gap: 6 }}>
-                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeGmail} disabled={analyzingGmail}>
+                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeGmail} disabled={analyzingGmail} testID="profile-gmail-analyse-button" accessibilityLabel="profile-gmail-analyse-button">
                                     {analyzingGmail
                                         ? <ActivityIndicator color="#fff" size="small" />
                                         : <Text style={s.analyseBtnText}>Analyse</Text>}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDisconnect('gmail')}>
+                                <TouchableOpacity onPress={() => handleDisconnect('gmail')} testID="profile-gmail-disconnect-button" accessibilityLabel="profile-gmail-disconnect-button">
                                     <Text style={s.disconnectText}>Disconnect</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectGmail}>
+                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectGmail} testID="profile-gmail-connect-button" accessibilityLabel="profile-gmail-connect-button">
                                 <Text style={s.connectBtnText}>Connect</Text>
                             </TouchableOpacity>
                         )}
@@ -338,17 +341,17 @@ export default function Profile() {
                         </View>
                         {integrations.calendar ? (
                             <View style={{ gap: 6 }}>
-                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeCalendar} disabled={analyzingCalendar}>
+                                <TouchableOpacity style={s.analyseBtn} onPress={handleAnalyzeCalendar} disabled={analyzingCalendar} testID="profile-calendar-analyse-button" accessibilityLabel="profile-calendar-analyse-button">
                                     {analyzingCalendar
                                         ? <ActivityIndicator color="#fff" size="small" />
                                         : <Text style={s.analyseBtnText}>Analyse</Text>}
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDisconnect('calendar')}>
+                                <TouchableOpacity onPress={() => handleDisconnect('calendar')} testID="profile-calendar-disconnect-button" accessibilityLabel="profile-calendar-disconnect-button">
                                     <Text style={s.disconnectText}>Disconnect</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectCalendar}>
+                            <TouchableOpacity style={s.connectBtn} onPress={handleConnectCalendar} testID="profile-calendar-connect-button" accessibilityLabel="profile-calendar-connect-button">
                                 <Text style={s.connectBtnText}>Connect</Text>
                             </TouchableOpacity>
                         )}
@@ -403,7 +406,7 @@ export default function Profile() {
                 {/* Export Data */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>EXPORT DATA</Text>
-                    <TouchableOpacity style={s.exportRow} onPress={handleExportTasks} disabled={exportingTasks}>
+                    <TouchableOpacity style={s.exportRow} onPress={handleExportTasks} disabled={exportingTasks} testID="profile-export-tasks-button" accessibilityLabel="profile-export-tasks-button">
                         {exportingTasks ? <ActivityIndicator color={colors.accent} size="small" />
                             : <Text style={s.exportIcon}>⬇</Text>}
                         <View style={{ flex: 1 }}>
@@ -411,7 +414,7 @@ export default function Profile() {
                             <Text style={s.exportDesc}>{stats.tasks} tasks</Text>
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[s.exportRow, { borderBottomWidth: 0 }]} onPress={handleExportPatterns} disabled={exportingPatterns}>
+                    <TouchableOpacity style={[s.exportRow, { borderBottomWidth: 0 }]} onPress={handleExportPatterns} disabled={exportingPatterns} testID="profile-export-patterns-button" accessibilityLabel="profile-export-patterns-button">
                         {exportingPatterns ? <ActivityIndicator color={colors.accent} size="small" />
                             : <Text style={s.exportIcon}>⬇</Text>}
                         <View style={{ flex: 1 }}>
@@ -424,7 +427,7 @@ export default function Profile() {
                 {/* Data & Privacy */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>DATA & PRIVACY</Text>
-                    <TouchableOpacity style={[s.dangerRow, { borderBottomWidth: 0 }]} onPress={handleDeleteData} disabled={deletingData}>
+                    <TouchableOpacity style={[s.dangerRow, { borderBottomWidth: 0 }]} onPress={handleDeleteData} disabled={deletingData} testID="profile-delete-data-button" accessibilityLabel="profile-delete-data-button">
                         {deletingData ? <ActivityIndicator color={colors.danger} size="small" />
                             : <Text style={s.dangerIcon}>🗑</Text>}
                         <View style={{ flex: 1 }}>
@@ -439,6 +442,8 @@ export default function Profile() {
                     style={[s.signOutBtn, signingOut && s.btnDisabled]}
                     onPress={handleSignOut}
                     disabled={signingOut}
+                    testID="profile-signout-button"
+                    accessibilityLabel="profile-signout-button"
                 >
                     {signingOut ? <ActivityIndicator color="#FF6B6B" />
                         : <Text style={s.signOutText}>Sign Out</Text>}

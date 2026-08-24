@@ -101,7 +101,7 @@ export default function Dashboard() {
                     <Text style={s.greeting}>FlowOptix</Text>
                     <Text style={s.subtitle}>Your productivity intelligence</Text>
                 </View>
-                <TouchableOpacity onPress={load} style={s.refreshBtn}>
+                <TouchableOpacity onPress={load} style={s.refreshBtn} testID="dashboard-refresh-button" accessibilityLabel="dashboard-refresh-button">
                     <Text style={s.refreshText}>↻</Text>
                 </TouchableOpacity>
             </View>

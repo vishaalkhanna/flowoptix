@@ -302,6 +302,8 @@ export default function LoginScreen() {
                             onPressOut={() => pressOut(googleScale)}
                             onPress={signInWithGoogle}
                             style={{ width: '100%' }}
+                            testID="login-google-button"
+                            accessibilityLabel="login-google-button"
                         >
                             <Animated.View
                                 style={[s.googleBtn, { transform: [{ scale: googleScale }] }]}
@@ -328,6 +330,8 @@ export default function LoginScreen() {
                             onPressOut={() => pressOut(emailBtnScale)}
                             onPress={() => { setError(''); setStep('email'); }}
                             style={{ width: '100%' }}
+                            testID="login-magiclink-button"
+                            accessibilityLabel="login-magiclink-button"
                         >
                             <Animated.View style={{ transform: [{ scale: emailBtnScale }], width: '100%' }}>
                                 <View {...wc('fo-email-wrap')}>
@@ -347,6 +351,8 @@ export default function LoginScreen() {
                             onPressOut={() => pressOut(pwdBtnScale)}
                             onPress={() => { setError(''); setStep('password'); }}
                             style={{ width: '100%', marginTop: 10 }}
+                            testID="login-password-nav-button"
+                            accessibilityLabel="login-password-nav-button"
                         >
                             <Animated.View style={{ transform: [{ scale: pwdBtnScale }], width: '100%' }}>
                                 <View {...wc('fo-email-wrap')}>
@@ -361,11 +367,11 @@ export default function LoginScreen() {
 
                     <View style={s.termsRow}>
                         <Text style={s.terms}>No password needed · By continuing you agree to our </Text>
-                        <TouchableOpacity onPress={() => router.push('/terms' as any)}>
+                        <TouchableOpacity onPress={() => router.push('/terms' as any)} testID="login-terms-link" accessibilityLabel="login-terms-link">
                             <Text style={s.termLink}>Terms</Text>
                         </TouchableOpacity>
                         <Text style={s.terms}> &amp; </Text>
-                        <TouchableOpacity onPress={() => router.push('/privacy' as any)}>
+                        <TouchableOpacity onPress={() => router.push('/privacy' as any)} testID="login-privacy-link" accessibilityLabel="login-privacy-link">
                             <Text style={s.termLink}>Privacy</Text>
                         </TouchableOpacity>
                     </View>
@@ -393,11 +399,13 @@ export default function LoginScreen() {
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
                             editable={!loading}
+                            testID="login-email-input"
+                            accessibilityLabel="login-email-input"
                             {...(Platform.OS === 'web' ? wc('fo-input') : {})}
                         />
                     </Animated.View>
 
-                    {!!error && <Text style={s.errText}>{error}</Text>}
+                    {!!error && <Text style={s.errText} testID="login-error-text" accessibilityLabel="login-error-text">{error}</Text>}
 
                     <Pressable
                         onPressIn={() => pressIn(submitScale)}
@@ -405,6 +413,8 @@ export default function LoginScreen() {
                         onPress={sendOtp}
                         disabled={loading}
                         style={{ width: '100%' }}
+                        testID="login-send-link-button"
+                        accessibilityLabel="login-send-link-button"
                     >
                         <Animated.View style={[s.submitBtn, loading && s.btnDisabled,
                                                { transform: [{ scale: submitScale }] }]}>
@@ -418,7 +428,7 @@ export default function LoginScreen() {
                         </Animated.View>
                     </Pressable>
 
-                    <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
+                    <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap} testID="login-back-button" accessibilityLabel="login-back-button">
                         <Text style={s.backText}>← Back</Text>
                     </Pressable>
                 </Animated.View>
@@ -435,13 +445,15 @@ export default function LoginScreen() {
                             {' '}— you'll be signed in automatically.
                         </Text>
                     </View>
-                    {!!error && <Text style={s.errText}>{error}</Text>}
+                    {!!error && <Text style={s.errText} testID="login-error-text" accessibilityLabel="login-error-text">{error}</Text>}
                     <Pressable
                         onPressIn={() => pressIn(submitScale)}
                         onPressOut={() => pressOut(submitScale)}
                         onPress={sendOtp}
                         disabled={loading}
                         style={{ width: '100%' }}
+                        testID="login-resend-button"
+                        accessibilityLabel="login-resend-button"
                     >
                         <Animated.View style={[s.submitBtn, s.submitSecondary,
                                                { transform: [{ scale: submitScale }] }]}>
@@ -451,7 +463,7 @@ export default function LoginScreen() {
                             }
                         </Animated.View>
                     </Pressable>
-                    <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap}>
+                    <Pressable onPress={() => { setError(''); setStep('email'); }} style={s.backWrap} testID="login-change-email-button" accessibilityLabel="login-change-email-button">
                         <Text style={s.backText}>← Change email</Text>
                     </Pressable>
                 </Animated.View>
@@ -479,6 +491,8 @@ export default function LoginScreen() {
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
                             editable={!loading}
+                            testID="login-email-input"
+                            accessibilityLabel="login-email-input"
                             {...(Platform.OS === 'web' ? wc('fo-input') : {})}
                         />
                     </Animated.View>
@@ -501,11 +515,13 @@ export default function LoginScreen() {
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
                             editable={!loading}
+                            testID="login-password-input"
+                            accessibilityLabel="login-password-input"
                             {...(Platform.OS === 'web' ? wc('fo-input') : {})}
                         />
                     </Animated.View>
 
-                    {!!error && <Text style={s.errText}>{error}</Text>}
+                    {!!error && <Text style={s.errText} testID="login-error-text" accessibilityLabel="login-error-text">{error}</Text>}
 
                     <Pressable
                         onPressIn={() => pressIn(submitScale)}
@@ -513,6 +529,8 @@ export default function LoginScreen() {
                         onPress={signInWithPassword}
                         disabled={loading}
                         style={{ width: '100%' }}
+                        testID="login-signin-button"
+                        accessibilityLabel="login-signin-button"
                     >
                         <Animated.View style={[s.submitBtn, loading && s.btnDisabled,
                                                { transform: [{ scale: submitScale }] }]}>
@@ -527,7 +545,7 @@ export default function LoginScreen() {
                     </Pressable>
 
                     {Platform.OS === 'web' && (
-                        <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap}>
+                        <Pressable onPress={() => { setError(''); setStep('landing'); }} style={s.backWrap} testID="login-back-button" accessibilityLabel="login-back-button">
                             <Text style={s.backText}>← Back</Text>
                         </Pressable>
                     )}

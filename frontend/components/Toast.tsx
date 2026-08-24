@@ -23,7 +23,7 @@ export default function Toast({ message, type, onHide }: ToastProps) {
     }[type];
 
     return (
-        <View style={[styles.wrap, { backgroundColor: config.bg }]}>
+        <View style={[styles.wrap, { backgroundColor: config.bg }]} testID="toast-message" accessibilityLabel="toast-message">
             <View style={styles.iconCircle}>
                 <Text style={styles.icon}>{config.icon}</Text>
             </View>

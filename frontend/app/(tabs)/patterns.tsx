@@ -116,6 +116,8 @@ export default function Patterns() {
                     style={[s.analyzeBtn, analyzing && s.btnDisabled]}
                     onPress={runAnalysis}
                     disabled={analyzing}
+                    testID="patterns-analyze-button"
+                    accessibilityLabel="patterns-analyze-button"
                 >
                     {analyzing
                         ? <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
@@ -146,7 +148,7 @@ export default function Patterns() {
                     <>
                         <Text style={s.sectionLabel}>DETECTED PATTERNS</Text>
                         {patterns.map((p: any, i: number) => (
-                            <View key={i} style={s.card}>
+                            <View key={i} style={s.card} testID={`patterns-card-${i}`} accessibilityLabel={`patterns-card-${i}`}>
                                 <View style={s.cardHeader}>
                                     <Text style={s.patternName}>{p.pattern_name}</Text>
                                     <Text style={s.frequency}>×{p.frequency}</Text>
@@ -188,6 +190,8 @@ export default function Patterns() {
                                     style={s.executeBtn}
                                     onPress={() => executePattern(p, i)}
                                     disabled={executing === i}
+                                    testID={`patterns-run-${i}`}
+                                    accessibilityLabel={`patterns-run-${i}`}
                                 >
                                     {executing === i ? (
                                         <ActivityIndicator color={colors.accent} size="small" />

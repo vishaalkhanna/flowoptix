@@ -107,20 +107,20 @@ export default function EmailModal({
 
                     <View style={s.header}>
                         <Text style={s.title}>✉  Compose Email</Text>
-                        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+                        <TouchableOpacity style={s.closeBtn} onPress={onClose} testID="email-modal-close-button" accessibilityLabel="email-modal-close-button">
                             <Text style={s.closeBtnText}>✕</Text>
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        <TouchableOpacity style={s.templateToggle} onPress={() => setShowTemplates(v => !v)}>
+                        <TouchableOpacity style={s.templateToggle} onPress={() => setShowTemplates(v => !v)} testID="email-modal-templates-button" accessibilityLabel="email-modal-templates-button">
                             <Text style={s.templateToggleText}>⚡ Quick Templates</Text>
                             <Text style={[s.templateToggleText, { fontSize: 11 }]}>{showTemplates ? '▲' : '▼'}</Text>
                         </TouchableOpacity>
                         {showTemplates && (
                             <View style={s.templatesRow}>
                                 {TEMPLATES.map((t, i) => (
-                                    <TouchableOpacity key={i} style={s.templateChip} onPress={() => applyTemplate(t)}>
+                                    <TouchableOpacity key={i} style={s.templateChip} onPress={() => applyTemplate(t)} testID={`email-modal-template-${i}`} accessibilityLabel={`email-modal-template-${i}`}>
                                         <Text style={s.templateChipText}>{t.label}</Text>
                                     </TouchableOpacity>
                                 ))}
@@ -143,13 +143,15 @@ export default function EmailModal({
                             placeholder="recipient@example.com"
                             placeholderTextColor={colors.muted}
                             keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+                            testID="email-modal-to-input" accessibilityLabel="email-modal-to-input"
                         />
-                        {toError ? <Text style={s.errorText}>{toError}</Text> : null}
+                        {toError ? <Text style={s.errorText} testID="email-modal-to-error" accessibilityLabel="email-modal-to-error">{toError}</Text> : null}
 
                         <Text style={s.label}>SUBJECT</Text>
                         <TextInput
                             style={s.input} value={subject} onChangeText={setSubject}
                             placeholder="Email subject" placeholderTextColor={colors.muted}
+                            testID="email-modal-subject-input" accessibilityLabel="email-modal-subject-input"
                         />
 
                         <Text style={s.label}>MESSAGE</Text>
@@ -158,12 +160,15 @@ export default function EmailModal({
                             placeholder="Write your message here…"
                             placeholderTextColor={colors.muted}
                             multiline numberOfLines={6} textAlignVertical="top"
+                            testID="email-modal-body-input" accessibilityLabel="email-modal-body-input"
                         />
 
                         <TouchableOpacity
                             style={[s.sendBtn, sending && s.sendBtnLoading]}
                             onPress={handleSend}
                             disabled={sending}
+                            testID="email-modal-send-button"
+                            accessibilityLabel="email-modal-send-button"
                         >
                             {sending ? (
                                 <>

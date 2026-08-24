@@ -322,6 +322,8 @@ export default function TaskLogger() {
                         key={tab}
                         style={[s.switchBtn, activeTab === tab && s.switchBtnActive]}
                         onPress={() => setActiveTab(tab)}
+                        testID={`tasks-tab-${tab}`}
+                        accessibilityLabel={`tasks-tab-${tab}`}
                     >
                         <Text style={[s.switchBtnText, activeTab === tab && s.switchBtnTextActive]}>
                             {tab === 'log' ? '✏ Log' : tab === 'timer' ? '⏱ Timer' : '📋 History'}
@@ -337,13 +339,15 @@ export default function TaskLogger() {
                     <TextInput
                         style={s.input} placeholder="e.g. Write proposal"
                         placeholderTextColor={colors.muted} value={taskName} onChangeText={setTaskName}
+                        testID="tasks-name-input" accessibilityLabel="tasks-name-input"
                     />
                     <Text style={s.label}>Category</Text>
                     <TextInput
                         style={s.input} placeholder="e.g. reporting"
                         placeholderTextColor={colors.muted} value={category} onChangeText={setCategory}
+                        testID="tasks-category-input" accessibilityLabel="tasks-category-input"
                     />
-                    <TouchableOpacity style={s.primaryBtn} onPress={() => handleLog()}>
+                    <TouchableOpacity style={s.primaryBtn} onPress={() => handleLog()} testID="tasks-log-button" accessibilityLabel="tasks-log-button">
                         <Text style={s.primaryBtnText}>Log Task</Text>
                     </TouchableOpacity>
 
@@ -351,7 +355,7 @@ export default function TaskLogger() {
                     {QUICK_TASKS.map((task, i) => {
                         const action = TASK_ACTIONS[task.name];
                         return (
-                            <TouchableOpacity key={i} style={s.quickBtn} onPress={() => handleLog(task.name, task.category)}>
+                            <TouchableOpacity key={i} style={s.quickBtn} onPress={() => handleLog(task.name, task.category)} testID={`tasks-quicklog-${task.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`} accessibilityLabel={`tasks-quicklog-${task.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={s.quickBtnText}>{task.name}</Text>
                                     <Text style={s.quickBtnCat}>{task.category}</Text>
@@ -374,11 +378,13 @@ export default function TaskLogger() {
                         style={s.input} placeholder="What are you working on?"
                         placeholderTextColor={colors.muted} value={timerTask} onChangeText={setTimerTask}
                         editable={!timerRunning}
+                        testID="tasks-timer-name-input" accessibilityLabel="tasks-timer-name-input"
                     />
                     <TextInput
                         style={s.input} placeholder="Category (e.g. development)"
                         placeholderTextColor={colors.muted} value={timerCat} onChangeText={setTimerCat}
                         editable={!timerRunning}
+                        testID="tasks-timer-category-input" accessibilityLabel="tasks-timer-category-input"
                     />
                     <View style={s.timerCard}>
                         <Text style={[s.timerDisplay, timerRunning && { color: colors.accent }]}>
@@ -388,13 +394,15 @@ export default function TaskLogger() {
                         <Text style={s.timerHint}>{timerRunning ? 'Recording…' : elapsed > 0 ? 'Stopped' : 'Ready'}</Text>
                     </View>
                     {!timerRunning ? (
-                        <TouchableOpacity style={s.primaryBtn} onPress={startTimer}>
+                        <TouchableOpacity style={s.primaryBtn} onPress={startTimer} testID="tasks-timer-start-button" accessibilityLabel="tasks-timer-start-button">
                             <Text style={s.primaryBtnText}>▶  Start Timer</Text>
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity
                             style={[s.primaryBtn, { backgroundColor: '#EF4444' }]}
                             onPress={stopTimer}
+                            testID="tasks-timer-stop-button"
+                            accessibilityLabel="tasks-timer-stop-button"
                         >
                             <Text style={s.primaryBtnText}>■  Stop & Save</Text>
                         </TouchableOpacity>
@@ -414,11 +422,12 @@ export default function TaskLogger() {
                         <TextInput
                             style={s.searchInput} placeholder="Search tasks…"
                             placeholderTextColor={colors.muted} value={search} onChangeText={setSearch}
+                            testID="tasks-search-input" accessibilityLabel="tasks-search-input"
                         />
-                        <TouchableOpacity style={s.importBtn} onPress={handleImportCSV}>
+                        <TouchableOpacity style={s.importBtn} onPress={handleImportCSV} testID="tasks-import-csv-button" accessibilityLabel="tasks-import-csv-button">
                             <Text style={s.importBtnText}>⬆ CSV</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={s.importBtn} onPress={loadHistory}>
+                        <TouchableOpacity style={s.importBtn} onPress={loadHistory} testID="tasks-refresh-button" accessibilityLabel="tasks-refresh-button">
                             <Text style={s.importBtnText}>↻</Text>
                         </TouchableOpacity>
                     </View>
@@ -427,6 +436,8 @@ export default function TaskLogger() {
                         <TouchableOpacity
                             style={[s.filterChip, !filterCat && s.filterChipActive]}
                             onPress={() => setFilterCat('')}
+                            testID="tasks-filter-all"
+                            accessibilityLabel="tasks-filter-all"
                         >
                             <Text style={[s.filterChipText, !filterCat && s.filterChipTextActive]}>All</Text>
                         </TouchableOpacity>
@@ -435,6 +446,8 @@ export default function TaskLogger() {
                                 key={cat}
                                 style={[s.filterChip, filterCat === cat && s.filterChipActive]}
                                 onPress={() => setFilterCat(filterCat === cat ? '' : cat)}
+                                testID={`tasks-filter-${cat}`}
+                                accessibilityLabel={`tasks-filter-${cat}`}
                             >
                                 <Text style={[s.filterChipText, filterCat === cat && s.filterChipTextActive]}>{cat}</Text>
                             </TouchableOpacity>
@@ -452,7 +465,7 @@ export default function TaskLogger() {
                             <>
                                 <Text style={s.historyCount}>{filtered.length} task{filtered.length !== 1 ? 's' : ''}</Text>
                                 {filtered.map(t => (
-                                    <View key={t.id} style={[s.historyRow, t._pending && { opacity: 0.6 }]}>
+                                    <View key={t.id} style={[s.historyRow, t._pending && { opacity: 0.6 }]} testID={`tasks-row-${t.id}`} accessibilityLabel={`tasks-row-${t.id}`}>
                                         <View style={[s.historyDot, { backgroundColor: catColor(t.category) }]} />
                                         <View style={{ flex: 1 }}>
                                             <Text style={s.historyName}>{t.task_name}</Text>
@@ -469,6 +482,8 @@ export default function TaskLogger() {
                                             onPress={() => deleteTask(t.id)}
                                             style={s.deleteBtn}
                                             disabled={!!t._pending || deletingId === t.id}
+                                            testID={`tasks-delete-${t.id}`}
+                                            accessibilityLabel={`tasks-delete-${t.id}`}
                                         >
                                             {deletingId === t.id
                                                 ? <ActivityIndicator color={colors.danger} size="small" />
