@@ -98,9 +98,10 @@ export default function TaskLogger() {
     const [filterCat, setFilterCat] = useState('');
     const [historyLoading, setHistoryLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const historyLoaded = useRef(false);
 
     useEffect(() => {
-        if (activeTab === 'history' && allTasks.length === 0) loadHistory();
+        if (activeTab === 'history' && !historyLoaded.current) loadHistory();
     }, [activeTab]);
 
     useEffect(() => {
@@ -114,7 +115,14 @@ export default function TaskLogger() {
         const { data } = await supabase
             .from('task_logs').select('*').eq('user_id', user.id)
             .order('started_at', { ascending: false });
-        setAllTasks(data ?? []);
+        const fetched = data ?? [];
+        const fetchedIds = new Set(fetched.map((r: any) => r.id));
+        // Preserve in-flight optimistic rows that haven't landed yet
+        setAllTasks(prev => {
+            const stillPending = prev.filter(t => t._pending && !fetchedIds.has(t.id));
+            return [...stillPending, ...fetched];
+        });
+        historyLoaded.current = true;
         setHistoryLoading(false);
     };
 
