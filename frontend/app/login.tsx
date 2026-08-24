@@ -156,6 +156,7 @@ export default function LoginScreen() {
     const borderGlow    = useRef(new Animated.Value(0)).current; // input focus
     const googleScale   = useRef(new Animated.Value(1)).current;
     const emailBtnScale = useRef(new Animated.Value(1)).current;
+    const pwdBtnScale   = useRef(new Animated.Value(1)).current;
     const submitScale   = useRef(new Animated.Value(1)).current;
     const aurora1Scale  = useRef(new Animated.Value(1)).current;
     const aurora2Scale  = useRef(new Animated.Value(1)).current;
@@ -333,6 +334,25 @@ export default function LoginScreen() {
                                     <View {...wc('fo-email-inner')} style={s.emailBtnInner}>
                                         <Ionicons name="mail-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
                                         <Text style={s.emailBtnText}>Sign in with Email</Text>
+                                    </View>
+                                </View>
+                            </Animated.View>
+                        </Pressable>
+                    )}
+
+                    {/* Password button — web only, for automated / programmatic sign-in */}
+                    {Platform.OS === 'web' && (
+                        <Pressable
+                            onPressIn={() => pressIn(pwdBtnScale)}
+                            onPressOut={() => pressOut(pwdBtnScale)}
+                            onPress={() => { setError(''); setStep('password'); }}
+                            style={{ width: '100%', marginTop: 10 }}
+                        >
+                            <Animated.View style={{ transform: [{ scale: pwdBtnScale }], width: '100%' }}>
+                                <View {...wc('fo-email-wrap')}>
+                                    <View {...wc('fo-email-inner')} style={s.emailBtnInner}>
+                                        <Ionicons name="lock-closed-outline" size={17} color="#fff" style={{ marginRight: 9 }} />
+                                        <Text style={s.emailBtnText}>Sign in with Password</Text>
                                     </View>
                                 </View>
                             </Animated.View>
