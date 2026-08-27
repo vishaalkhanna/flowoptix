@@ -1,0 +1,9 @@
+# Secrets — never commit
+.env
+
+# Generated output
+node_modules/
+reports/
+screenshots/
+logs/
+excel/

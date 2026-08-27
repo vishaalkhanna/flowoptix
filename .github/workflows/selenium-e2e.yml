@@ -1,0 +1,73 @@
+name: Selenium E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - '.github/workflows/selenium-e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - '.github/workflows/selenium-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to run tests against'
+        required: false
+        default: 'chrome'
+        type: choice
+        options: [chrome, firefox, edge]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: e2e/package.json
+
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm install
+
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run E2E tests
+        working-directory: e2e
+        env:
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          BROWSER: ${{ inputs.browser || 'chrome' }}
+          HEADLESS: 'true'
+          BASE_URL: 'https://flowoptix-ten.vercel.app'
+        run: npm test
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports-${{ github.run_number }}
+          path: |
+            e2e/reports/
+            e2e/excel/
+            e2e/logs/
+          retention-days: 14
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures-${{ github.run_number }}
+          path: e2e/reports/failures/
+          retention-days: 14

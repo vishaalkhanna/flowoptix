@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "uniquePrefix": "E2E-TEST",
+    "sampleCategory": "testing"
+  },
+  "chat": {
+    "simpleMessage": "Hello"
+  },
+  "auth": {
+    "badPassword": "wrong-password-xyz-123!"
+  }
+}
