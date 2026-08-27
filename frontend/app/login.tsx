@@ -17,7 +17,9 @@ const CALLBACK_URL = `${SITE_URL}/auth/callback`;
 const TAGLINE      = 'Your productivity intelligence';
 
 // ─── Web CSS ──────────────────────────────────────────────────────────────────
-if (Platform.OS === 'web') {
+// Guard against Node prerendering: during expo's static build, Platform.OS is
+// 'web' but document is not defined. Only inject the stylesheet in a real browser.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
     const el = document.createElement('style');
     el.textContent = `
         @keyframes aurora1 {
