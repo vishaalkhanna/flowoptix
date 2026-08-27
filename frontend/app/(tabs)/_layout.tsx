@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Pressable } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 
 const tabOpts = (testId: string, title: string, icon: (args: any) => React.ReactNode): any => ({
@@ -7,6 +8,9 @@ const tabOpts = (testId: string, title: string, icon: (args: any) => React.React
   tabBarIcon: icon,
   tabBarTestID: testId,
   tabBarAccessibilityLabel: testId,
+  tabBarButton: (props: any) => (
+    <Pressable {...props} testID={testId} accessibilityLabel={testId} />
+  ),
 });
 
 export default function TabLayout() {
