@@ -88,8 +88,18 @@ describe('Tasks', function () {
   it('should open the email modal when clicking the Send Email quick-log', async function () {
     // Click "Send Email" quick-log — this opens the EmailModal on the same page
     await tasksPage.clickQuickLog('send-email');
-    // Email modal close button should appear
-    await tasksPage.waitFor('email-modal-close-button', config.ELEMENT_TIMEOUT);
+    // Wait for the modal close button to be VISIBLE (not just present in the DOM).
+    // waitForTestId uses elementLocated which fires on the static HTML node before
+    // the React modal entrance animation completes (opacity still 0). We need to
+    // poll isDisplayed() instead, which returns true only once the element is
+    // actually rendered on screen.
+    await driver.wait(async () => {
+      const els = await driver.findElements(
+        By.css('[data-testid="email-modal-close-button"]')
+      );
+      if (!els.length) return false;
+      try { return await els[0].isDisplayed(); } catch (_) { return false; }
+    }, config.ELEMENT_TIMEOUT, 'Email modal close button did not become visible');
     const visible = await tasksPage.isVisible('email-modal-close-button');
     expect(visible).to.be.true;
     // Close the modal

@@ -1,9 +1,10 @@
 'use strict';
 
-const { By } = require('selenium-webdriver');
+const { By, Key } = require('selenium-webdriver');
 const BasePage = require('./BasePage');
 const config = require('../config/config');
 const { waitForTestId, clearStorage } = require('../utilities/waits');
+const logger = require('../utilities/logger');
 
 class LoginPage extends BasePage {
   /**
@@ -44,11 +45,25 @@ class LoginPage extends BasePage {
   }
 
   async fillEmail(email) {
-    await this.type('login-email-input', email);
+    await this.type('login-email-input', email.trim());
   }
 
+  /**
+   * Override the default type() for the password field.
+   * safeSendKeys uses el.clear() before el.sendKeys(), which can leave
+   * react-native-web TextInput in a transitional state where subsequent
+   * key events are dropped. Instead: click → Ctrl+A (select all) → sendKeys,
+   * which is pure keyboard simulation with no WebDriver clear() side-effects.
+   */
   async fillPassword(password) {
-    await this.type('login-password-input', password);
+    const el = await this.driver.findElement(By.css('[data-testid="login-password-input"]'));
+    await this.driver.executeScript('arguments[0].scrollIntoView({block:"center"})', el);
+    await this.driver.sleep(150);
+    await el.click();
+    await this.driver.sleep(100);
+    await el.sendKeys(Key.chord(Key.CONTROL, 'a'));
+    await this.driver.sleep(50);
+    await el.sendKeys(password.trim());
   }
 
   async clickSignIn() {
@@ -57,8 +72,16 @@ class LoginPage extends BasePage {
 
   async loginWith(email, password) {
     await this.goToPasswordStep();
-    await this.fillEmail(email);
-    await this.fillPassword(password);
+    await this.fillEmail(email.trim());
+    await this.fillPassword(password.trim());
+    // Diagnostic: surface DOM values in the failure JSON so we can confirm
+    // what the form will actually submit to Supabase.
+    const vals = await this.driver.executeScript(function () {
+      var e = document.querySelector('[data-testid="login-email-input"]');
+      var p = document.querySelector('[data-testid="login-password-input"]');
+      return { email: e ? e.value : null, pwdLen: p ? p.value.length : null };
+    });
+    logger.info(`loginWith: dom email="${vals.email}" pwdLen=${vals.pwdLen}`);
     await this.clickSignIn();
   }
 
