@@ -92,24 +92,15 @@ describe('Navigation', function () {
     await driver.get(config.BASE_URL + '/tasks');
     await driver.sleep(500);
     await driver.navigate().refresh();
-    // After a hard refresh of a statically exported page, expo-router re-runs the
-    // client-side auth check and may redirect to / (not /tasks) due to hydration.
-    // The key invariant is that the user stays AUTHENTICATED — not sent to /login.
-    await driver.wait(async () => {
-      const url = await driver.getCurrentUrl();
-      return !url.includes('/login');
-    }, config.PAGE_LOAD_TIMEOUT, 'Expected to remain authenticated after page refresh');
-    // Wait for the tab bar to confirm the app fully loaded in an authenticated state
+    // With SPA output (web.output "single") Vercel serves index.html for every
+    // route, so a hard refresh on /tasks stays on /tasks — no hydration mismatch.
     await driver.wait(async () => {
       const els = await driver.findElements(
-        require('selenium-webdriver').By.css('[data-testid="tab-dashboard"]')
+        require('selenium-webdriver').By.css('[data-testid="tasks-tab-log"]')
       );
       return els.length > 0;
-    }, config.ELEMENT_TIMEOUT, 'Expected tab bar to appear after page refresh');
+    }, config.PAGE_LOAD_TIMEOUT, 'Expected tasks-tab-log after page refresh on /tasks');
     const url = await driver.getCurrentUrl();
-    expect(url).to.satisfy(
-      (u) => !u.includes('/login'),
-      `Expected authenticated state after refresh, got ${url}`
-    );
+    expect(url).to.include('tasks');
   });
 });
