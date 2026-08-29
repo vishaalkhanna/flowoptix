@@ -10,10 +10,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     let done = false;
+    let initialDone = false;
 
     const finish = (hasSession: boolean) => {
       if (done) return;
       done = true;
+      initialDone = true;
       setChecking(false);
       if (hasSession) router.replace('/(tabs)');
       else router.replace('/login');
@@ -31,7 +33,16 @@ export default function RootLayout() {
         finish(false);
       });
 
-    return () => clearTimeout(timeout);
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!initialDone) return;
+      if (event === 'SIGNED_IN' && session) router.replace('/(tabs)');
+      if (event === 'SIGNED_OUT') router.replace('/login');
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return (

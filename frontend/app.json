@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.flowoptix.app",
-      "versionCode": 8,
+      "versionCode": 9,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

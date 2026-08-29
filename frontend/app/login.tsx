@@ -272,9 +272,10 @@ export default function LoginScreen() {
         if (!email.trim()) { setError('Please enter your email.'); return; }
         if (!password) { setError('Please enter your password.'); return; }
         setLoading(true); setError('');
-        const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         setLoading(false);
-        if (err) setError(err.message);
+        if (err) { setError(err.message); return; }
+        if (data.session) router.replace('/(tabs)');
     };
 
     // ─── Card inner content (shared between web wrapper and native) ───────────

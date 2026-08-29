@@ -148,6 +148,29 @@ describe('Authentication', function () {
 
   // ── Protected route ───────────────────────────────────────────────────────
 
+  it('should sign in via the real form and land on the Dashboard', async function () {
+    // Exercises the actual UI form end-to-end — this test would catch a broken
+    // Sign In button even though the REST-injection test above would still pass.
+    // Placed after sign-out so the session is clear, and after enough intervening
+    // tests that the Supabase per-user rate-limit from the wrong-credentials test
+    // above has expired.
+    await loginPage.load();
+    await loginPage.loginWith(config.TEST_EMAIL, config.TEST_PASSWORD);
+    await loginPage.waitForDashboard();
+    const url = await loginPage.getCurrentUrl();
+    expect(url).to.not.include('/login');
+    const tabVisible = await loginPage.isVisible('tab-dashboard');
+    expect(tabVisible).to.be.true;
+    // Sign out to restore the logged-out state the protected-route test expects.
+    await driver.get(config.BASE_URL + '/profile');
+    await loginPage.waitFor('profile-signout-button', config.PAGE_LOAD_TIMEOUT);
+    await loginPage.click('profile-signout-button');
+    await driver.wait(async () => {
+      const u = await driver.getCurrentUrl();
+      return u.includes('/login');
+    }, config.PAGE_LOAD_TIMEOUT);
+  });
+
   it('should redirect an unauthenticated user from a protected route to /login', async function () {
     // We are now signed out from the previous test
     await driver.get(config.BASE_URL + '/tasks');
