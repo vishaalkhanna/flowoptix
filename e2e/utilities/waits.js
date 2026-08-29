@@ -69,11 +69,33 @@ async function safeClick(driver, cssSelector, timeout = config.ELEMENT_TIMEOUT) 
 
 async function safeSendKeys(driver, cssSelector, text, timeout = config.ELEMENT_TIMEOUT) {
   const el = await waitForElement(driver, cssSelector, timeout);
-  await driver.executeScript('arguments[0].focus()', el);
-  await driver.sleep(100);
-  await el.clear();   // fires input/change events so React state resets to ""
-  await driver.sleep(50);
-  await el.sendKeys(text);
+  await driver.executeScript('arguments[0].scrollIntoView({block:"center"});', el);
+  await driver.sleep(150);
+  try {
+    await driver.executeScript('arguments[0].focus()', el);
+    await driver.sleep(100);
+    await el.clear();
+    await driver.sleep(50);
+    await el.sendKeys(text);
+  } catch (_) {
+    // Fallback for react-native-web inputs that block WebDriver interaction
+    await driver.executeScript(function (el, val) {
+      var isInput = el instanceof window.HTMLInputElement;
+      var isTextarea = el instanceof window.HTMLTextAreaElement;
+      if (isInput || isTextarea) {
+        var proto = isInput ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
+        var desc = Object.getOwnPropertyDescriptor(proto, 'value');
+        if (desc && desc.set) { desc.set.call(el, val); } else { el.value = val; }
+      } else if (el.isContentEditable) {
+        el.textContent = val;
+      } else {
+        el.value = val;
+      }
+      ['input', 'change'].forEach(function (evName) {
+        el.dispatchEvent(new Event(evName, { bubbles: true, cancelable: true }));
+      });
+    }, el, text);
+  }
   return el;
 }
 

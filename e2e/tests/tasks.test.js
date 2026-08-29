@@ -65,9 +65,15 @@ describe('Tasks', function () {
 
   it('should reject an empty task name and show an alert', async function () {
     await tasksPage.switchTab('log');
-    // Clear the name field (should already be empty)
+    // Clear the name field via JS — react-native-web inputs may not be
+    // interactable via WebDriver's native clear() due to animation state.
     const nameInput = await driver.findElement(By.css('[data-testid="tasks-name-input"]'));
-    await nameInput.clear();
+    await driver.executeScript(function (el) {
+      var desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+      if (desc && desc.set) { desc.set.call(el, ''); } else { el.value = ''; }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, nameInput);
     await tasksPage.click('tasks-log-button');
 
     // react-native-web calls window.alert for Alert.alert
@@ -109,9 +115,7 @@ describe('Tasks', function () {
     await driver.sleep(800);
 
     // Search for "Send Email" to filter
-    const searchInput = await driver.findElement(By.css('[data-testid="tasks-search-input"]'));
-    await searchInput.clear();
-    await searchInput.sendKeys('Send Email');
+    await tasksPage.type('tasks-search-input', 'Send Email');
     await driver.sleep(600);
 
     const count = await tasksPage.getRowCount();
@@ -133,14 +137,12 @@ describe('Tasks', function () {
     await tasksPage.waitForRows(1);
 
     // Search for something very unlikely to match
-    const searchInput = await driver.findElement(By.css('[data-testid="tasks-search-input"]'));
-    await searchInput.clear();
-    await searchInput.sendKeys('zzz-no-match-xyz-999');
+    await tasksPage.type('tasks-search-input', 'zzz-no-match-xyz-999');
     await driver.sleep(600);
     const filteredCount = await tasksPage.getRowCount();
 
     // Clear search and verify rows come back
-    await searchInput.clear();
+    await tasksPage.type('tasks-search-input', '');
     await driver.sleep(600);
     const allCount = await tasksPage.getRowCount();
 

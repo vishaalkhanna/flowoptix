@@ -60,7 +60,48 @@ describe('UI — Cross-Cutting', function () {
     expect(true).to.be.true;
   });
 
+  // ── Patterns page UI ──────────────────────────────────────────────────────
+
+  it('should display the Analyse button on the Patterns page', async function () {
+    await driver.get(config.BASE_URL + '/patterns');
+    await tasksPage.waitFor('patterns-analyze-button', config.PAGE_LOAD_TIMEOUT);
+    const visible = await tasksPage.isVisible('patterns-analyze-button');
+    expect(visible).to.be.true;
+  });
+
+  // ── Automations page UI ───────────────────────────────────────────────────
+
+  it('should display the Add Rule button on the Automations page', async function () {
+    await driver.get(config.BASE_URL + '/automations');
+    await tasksPage.waitFor('automations-add-rule-button', config.PAGE_LOAD_TIMEOUT);
+    const visible = await tasksPage.isVisible('automations-add-rule-button');
+    expect(visible).to.be.true;
+  });
+
+  it('should open the New Rule modal when Add Rule is clicked', async function () {
+    // Navigate fresh to ensure modal is closed
+    await driver.get(config.BASE_URL + '/automations');
+    await tasksPage.waitFor('automations-add-rule-button', config.PAGE_LOAD_TIMEOUT);
+    await tasksPage.click('automations-add-rule-button');
+    await driver.sleep(800); // wait for modal animation to complete
+    await tasksPage.waitFor('automations-rule-name-input', config.ELEMENT_TIMEOUT);
+    const visible = await tasksPage.isVisible('automations-rule-name-input');
+    expect(visible).to.be.true;
+  });
+
+  // ── Dashboard UI ──────────────────────────────────────────────────────────
+
+  it('should display the Dashboard refresh button', async function () {
+    await driver.get(config.BASE_URL + '/');
+    await tasksPage.waitFor('dashboard-refresh-button', config.PAGE_LOAD_TIMEOUT);
+    const visible = await tasksPage.isVisible('dashboard-refresh-button');
+    expect(visible).to.be.true;
+  });
+
   // ── Error text on login ───────────────────────────────────────────────────
+  // IMPORTANT: These tests call loginPage.load() which clears all storage.
+  // Keep them last in the suite so they don't disrupt the Supabase session
+  // used by the protected-page tests above.
 
   it('should render the login-error-text element on invalid credentials', async function () {
     await loginPage.load();
@@ -84,42 +125,5 @@ describe('UI — Cross-Cutting', function () {
     const errorGone = els.length === 0 || !(await els[0].isDisplayed());
     // Accept both: error cleared OR still visible (app behaviour may vary)
     expect(true).to.be.true;
-  });
-
-  // ── Patterns page UI ──────────────────────────────────────────────────────
-
-  it('should display the Analyse button on the Patterns page', async function () {
-    await driver.get(config.BASE_URL + '/patterns');
-    await tasksPage.waitFor('patterns-analyze-button', config.PAGE_LOAD_TIMEOUT);
-    const visible = await tasksPage.isVisible('patterns-analyze-button');
-    expect(visible).to.be.true;
-  });
-
-  // ── Automations page UI ───────────────────────────────────────────────────
-
-  it('should display the Add Rule button on the Automations page', async function () {
-    await driver.get(config.BASE_URL + '/automate');
-    await tasksPage.waitFor('automations-add-rule-button', config.PAGE_LOAD_TIMEOUT);
-    const visible = await tasksPage.isVisible('automations-add-rule-button');
-    expect(visible).to.be.true;
-  });
-
-  it('should open the New Rule modal when Add Rule is clicked', async function () {
-    const ruleNameVisible = await tasksPage.isVisible('automations-rule-name-input');
-    if (!ruleNameVisible) {
-      await tasksPage.click('automations-add-rule-button');
-    }
-    await tasksPage.waitFor('automations-rule-name-input', config.ELEMENT_TIMEOUT);
-    const visible = await tasksPage.isVisible('automations-rule-name-input');
-    expect(visible).to.be.true;
-  });
-
-  // ── Dashboard UI ──────────────────────────────────────────────────────────
-
-  it('should display the Dashboard refresh button', async function () {
-    await driver.get(config.BASE_URL + '/');
-    await tasksPage.waitFor('dashboard-refresh-button', config.PAGE_LOAD_TIMEOUT);
-    const visible = await tasksPage.isVisible('dashboard-refresh-button');
-    expect(visible).to.be.true;
   });
 });

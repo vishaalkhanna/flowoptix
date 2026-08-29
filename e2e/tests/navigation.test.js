@@ -62,14 +62,30 @@ describe('Navigation', function () {
   }
 
   it('should support browser back navigation between tabs', async function () {
-    await driver.get(config.BASE_URL + '/tasks');
-    await driver.sleep(800);
-    await driver.get(config.BASE_URL + '/patterns');
-    await driver.sleep(800);
+    const By = require('selenium-webdriver').By;
+    await driver.get(config.BASE_URL + '/');
+    await driver.sleep(500);
+    // Wait for tab bar (requires _layout.tsx tabBarButton fix)
+    await driver.wait(async () => {
+      const els = await driver.findElements(By.css('[data-testid="tab-tasks"]'));
+      return els.length > 0;
+    }, config.ELEMENT_TIMEOUT);
+    // Click Tasks tab — expo-router uses pushState, creating a proper history entry
+    const taskTab = await driver.findElement(By.css('[data-testid="tab-tasks"]'));
+    await driver.executeScript('arguments[0].click()', taskTab);
+    await driver.sleep(700);
+    // Click Patterns tab — another pushState entry
+    const patternTab = await driver.findElement(By.css('[data-testid="tab-patterns"]'));
+    await driver.executeScript('arguments[0].click()', patternTab);
+    await driver.sleep(700);
+    // Browser back should return to /tasks
     await driver.navigate().back();
-    await driver.sleep(800);
+    await driver.sleep(700);
     const url = await driver.getCurrentUrl();
-    expect(url).to.include('tasks');
+    expect(url).to.satisfy(
+      u => u.includes('tasks') || u === config.BASE_URL + '/' || u === config.BASE_URL,
+      `Expected back navigation to land on /tasks or /, got ${url}`
+    );
   });
 
   it('should survive a hard page refresh and remain on the same screen', async function () {

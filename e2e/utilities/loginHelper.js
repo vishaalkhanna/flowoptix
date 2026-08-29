@@ -40,7 +40,7 @@ async function performLogin(driver) {
           'apikey': '${SUPABASE_ANON_KEY}',
           'Authorization': 'Bearer ${SUPABASE_ANON_KEY}'
         },
-        body: JSON.stringify({ email: email, password: pass })
+        body: JSON.stringify({ email: email.trim(), password: pass.trim() })
       })
       .then(function(r){ return r.json(); })
       .then(function(sess){
