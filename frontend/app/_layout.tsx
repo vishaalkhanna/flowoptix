@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { ThemeProvider } from '../context/ThemeContext';
 
 export default function RootLayout() {
-  const router = useRouter();
+  const router   = useRouter();
+  const navState = useRootNavigationState();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    // Navigator has not mounted yet — defer until it has a stable key.
+    if (!navState?.key) return;
+
     let done = false;
     let initialDone = false;
 
     const finish = (hasSession: boolean) => {
       if (done) return;
+      if (!navState?.key) return;
       done = true;
       initialDone = true;
       setChecking(false);
@@ -35,6 +40,7 @@ export default function RootLayout() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!initialDone) return;
+      if (!navState?.key) return;
       if (event === 'SIGNED_IN' && session) router.replace('/(tabs)');
       if (event === 'SIGNED_OUT') router.replace('/login');
     });
@@ -43,7 +49,7 @@ export default function RootLayout() {
       clearTimeout(timeout);
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [navState?.key]);
 
   return (
     <ThemeProvider>

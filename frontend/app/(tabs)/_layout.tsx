@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,42 +13,44 @@ const TAB_HREFS: Record<string, string> = {
   profile: '/profile',
 };
 
-// tabBarButton renders an <a> on web so:
-//  1. data-testid is present for Selenium
-//  2. clicking calls router.navigate for SPA navigation (no full reload)
-//  3. Ctrl/Cmd+click still opens in a new tab (browser default for <a>)
-const tabOpts = (testId: string, screenName: string, title: string, icon: (args: any) => React.ReactNode): any => ({
-  title,
-  tabBarIcon: icon,
-  tabBarTestID: testId,
-  tabBarAccessibilityLabel: testId,
-  tabBarButton: (props: any) => {
-    const href = TAB_HREFS[screenName] ?? `/${screenName}`;
-    return (
-      <a
-        href={href}
-        {...({ 'data-testid': testId } as any)}
-        aria-label={testId}
-        aria-selected={props.accessibilityState?.selected}
-        style={{
-          display: 'flex',
-          flex: 1,
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textDecoration: 'none',
-          color: 'inherit',
-        } as any}
-        onClick={(e: any) => {
-          e.preventDefault();
-          router.navigate(href as any);
-        }}
-      >
-        {props.children}
-      </a>
-    );
-  },
-});
+// On web: render an <a> so Selenium finds data-testid and Ctrl/Cmd+click works.
+// On native: omit tabBarButton entirely — React Navigation's default button is
+// used; tabBarTestID and tabBarAccessibilityLabel remain for Appium.
+const tabOpts = (testId: string, screenName: string, title: string, icon: (args: any) => React.ReactNode): any => {
+  const href = TAB_HREFS[screenName] ?? `/${screenName}`;
+
+  const webAnchorButton = (props: any) => (
+    <a
+      href={href}
+      {...({ 'data-testid': testId } as any)}
+      aria-label={testId}
+      aria-selected={props.accessibilityState?.selected}
+      style={{
+        display: 'flex',
+        flex: 1,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textDecoration: 'none',
+        color: 'inherit',
+      } as any}
+      onClick={(e: any) => {
+        e.preventDefault();
+        router.navigate(href as any);
+      }}
+    >
+      {props.children}
+    </a>
+  );
+
+  return {
+    title,
+    tabBarIcon: icon,
+    tabBarTestID: testId,
+    tabBarAccessibilityLabel: testId,
+    ...(Platform.OS === 'web' ? { tabBarButton: webAnchorButton } : {}),
+  };
+};
 
 export default function TabLayout() {
   const { colors } = useTheme();
