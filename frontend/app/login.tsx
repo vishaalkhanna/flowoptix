@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -248,8 +249,43 @@ export default function LoginScreen() {
     const pressOut = (v: Animated.Value) => Animated.spring(v, { toValue: 1, friction: 4, useNativeDriver: true }).start();
 
     // ── Auth ──
+    const NATIVE_REDIRECT = 'flowoptix://auth/callback';
+
     const signInWithGoogle = async () => {
         setLoading(true); setError('');
+
+        if (Platform.OS !== 'web') {
+            const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
+            });
+            if (oauthErr || !data?.url) {
+                setLoading(false);
+                if (oauthErr) setError(oauthErr.message);
+                return;
+            }
+            const result = await WebBrowser.openAuthSessionAsync(data.url, NATIVE_REDIRECT);
+            setLoading(false);
+            if (result.type === 'success') {
+                const hash   = result.url.split('#')[1] || '';
+                const params = new URLSearchParams(hash);
+                const accessToken  = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                if (accessToken && refreshToken) {
+                    const { error: sessionErr } = await supabase.auth.setSession({
+                        access_token: accessToken, refresh_token: refreshToken,
+                    });
+                    if (sessionErr) setError(sessionErr.message);
+                    // onAuthStateChange in _layout.tsx navigates to tabs
+                } else {
+                    setError('Sign-in failed — no tokens in redirect URL.');
+                }
+            }
+            // type 'cancel' or 'dismiss' means the user backed out — not an error
+            return;
+        }
+
+        // Web: let the browser handle the OAuth redirect normally
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google', options: { redirectTo: CALLBACK_URL },
         });
@@ -475,6 +511,35 @@ export default function LoginScreen() {
             {/* ── PASSWORD ── */}
             {step === 'password' && (
                 <Animated.View style={[s.formGroup, { opacity: fieldsOpacity }]}>
+
+                    {/* Google — shown on native above the password form.
+                        On web the Google button lives on the landing step instead. */}
+                    {Platform.OS !== 'web' && (
+                        <>
+                            <Pressable
+                                onPressIn={() => pressIn(googleScale)}
+                                onPressOut={() => pressOut(googleScale)}
+                                onPress={signInWithGoogle}
+                                disabled={loading}
+                                style={{ width: '100%', marginBottom: 6 }}
+                                testID="login-google-button"
+                                accessibilityLabel="login-google-button"
+                            >
+                                <Animated.View
+                                    style={[s.googleBtn, s.googleBtnNative, { transform: [{ scale: googleScale }] }]}
+                                >
+                                    <Text style={s.gIcon}>G</Text>
+                                    <Text style={s.googleText}>Continue with Google</Text>
+                                </Animated.View>
+                            </Pressable>
+                            <View style={s.divider}>
+                                <View style={s.divLine} />
+                                <Text style={s.divLabel}>or</Text>
+                                <View style={s.divLine} />
+                            </View>
+                        </>
+                    )}
+
                     <Animated.View style={[s.inputWrap, { borderBottomColor: inputBorderColor }]}>
                         <Ionicons
                             name="mail-outline" size={16}
