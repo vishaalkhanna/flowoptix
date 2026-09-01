@@ -179,7 +179,7 @@ export default function Automations() {
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
             <ScrollView contentContainerStyle={s.content}>
                 <Text style={s.pageTitle}>Automations</Text>
-                <Text style={s.pageSubtitle}>Execute tasks instantly — powered by Zapier & Claude</Text>
+                <Text style={s.pageSubtitle}>Execute tasks instantly — AI-powered automation</Text>
 
                 {/* QUICK ACTIONS */}
                 <Text style={s.sectionLabel}>QUICK ACTIONS</Text>

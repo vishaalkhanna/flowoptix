@@ -274,13 +274,13 @@ export default function Profile() {
                     <Text style={s.sectionTitle}>CONNECTED SERVICES</Text>
                     {[
                         { name: 'Zapier', status: 'connected', desc: 'Email automation via webhook', color: '#FF4A00' },
-                        { name: 'Claude AI', status: 'connected', desc: 'Pattern analysis & chat', color: '#7C5CFF' },
+                        { name: 'AI Engine', status: 'connected', desc: 'Pattern analysis & chat', color: '#7C5CFF' },
                         { name: 'Supabase', status: 'connected', desc: 'Database & authentication', color: '#3ECF8E' },
                     ].map((svc, i, arr) => (
                         <View key={svc.name} style={[s.serviceRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
                             <View style={[s.serviceIcon, { backgroundColor: svc.color + '20' }]}>
                                 <Text style={{ fontSize: 14 }}>
-                                    {svc.name === 'Zapier' ? '⚡' : svc.name === 'Claude AI' ? '✦' : '🗄'}
+                                    {svc.name === 'Zapier' ? '⚡' : svc.name === 'AI Engine' ? '✦' : '🗄'}
                                 </Text>
                             </View>
                             <View style={{ flex: 1 }}>
@@ -395,7 +395,7 @@ export default function Profile() {
                     </View>
                     <View style={s.infoRow}>
                         <Text style={s.infoLabel}>AI Engine</Text>
-                        <Text style={s.infoValue}>Claude 3.5 Haiku</Text>
+                        <Text style={s.infoValue}>Claude 3.5 Haiku (via OpenRouter)</Text>
                     </View>
                     <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
                         <Text style={s.infoLabel}>Database</Text>
@@ -449,7 +449,7 @@ export default function Profile() {
                         : <Text style={s.signOutText}>Sign Out</Text>}
                 </TouchableOpacity>
 
-                <Text style={s.footer}>FlowOptix v2 · Built with Claude + Supabase</Text>
+                <Text style={s.footer}>FlowOptix v2 · Powered by AI + Supabase</Text>
             </ScrollView>
 
             {toast && <Toast message={toast.msg} type={toast.type} onHide={() => setToast(null)} />}

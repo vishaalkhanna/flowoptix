@@ -74,7 +74,7 @@ export default function Patterns() {
         if (typeof window === 'undefined' || !('Notification' in window)) return;
         const send = () => new Notification('FlowOptix — Analysis complete', {
             body: patternCount > 0
-                ? `Claude detected ${patternCount} workflow pattern${patternCount > 1 ? 's' : ''}. Tap to review.`
+                ? `Detected ${patternCount} workflow pattern${patternCount > 1 ? 's' : ''}. Tap to review.`
                 : 'Analysis complete. Log more tasks to detect patterns.',
             icon: '/favicon.ico',
         });
@@ -110,7 +110,7 @@ export default function Patterns() {
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
             <ScrollView style={s.container}>
                 <Text style={s.title}>AI Pattern Analysis</Text>
-                <Text style={s.subtitle}>Powered by Claude — real insights from your workflow</Text>
+                <Text style={s.subtitle}>AI-powered insights from your workflow</Text>
 
                 <TouchableOpacity
                     style={[s.analyzeBtn, analyzing && s.btnDisabled]}
@@ -124,7 +124,7 @@ export default function Patterns() {
                         : <Text style={s.analyzeBtnIcon}>✦</Text>
                     }
                     <Text style={s.analyzeBtnText}>
-                        {analyzing ? 'Claude is analysing...' : 'Analyse with Claude'}
+                        {analyzing ? 'Analysing...' : 'Analyse Patterns'}
                     </Text>
                 </TouchableOpacity>
 
@@ -132,7 +132,7 @@ export default function Patterns() {
 
                 {summary ? (
                     <View style={s.summaryCard}>
-                        <Text style={s.summaryLabel}>🧠 Claude's Summary</Text>
+                        <Text style={s.summaryLabel}>🧠 AI Summary</Text>
                         <Text style={s.summaryText}>{summary}</Text>
                     </View>
                 ) : null}
@@ -142,7 +142,7 @@ export default function Patterns() {
                 ) : patterns.length === 0 ? (
                     <View style={s.emptyBox}>
                         <Text style={s.emptyTitle}>No patterns yet</Text>
-                        <Text style={s.emptyDesc}>Log some tasks, then tap "Analyse with Claude" to detect your workflow patterns.</Text>
+                        <Text style={s.emptyDesc}>Log some tasks, then tap "Analyse Patterns" to detect your workflow patterns.</Text>
                     </View>
                 ) : (
                     <>

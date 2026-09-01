@@ -410,7 +410,7 @@ export default function TaskLogger() {
                     <View style={s.timerTips}>
                         <Text style={s.timerTipRow}>• Start when you begin a task</Text>
                         <Text style={s.timerTipRow}>• Stop when done — real duration is saved</Text>
-                        <Text style={s.timerTipRow}>• Claude uses real durations to detect patterns</Text>
+                        <Text style={s.timerTipRow}>• Real durations improve pattern detection</Text>
                     </View>
                 </ScrollView>
             )}
