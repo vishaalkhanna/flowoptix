@@ -1,0 +1,22 @@
+[
+  { "filterChip": "all", "description": "All categories (reset / baseline)", "expectRows": "some", "seeded": true },
+  { "filterChip": "general", "description": "Seeded category: general", "expectRows": "some", "seeded": true },
+  { "filterChip": "email", "description": "Seeded category: email", "expectRows": "some", "seeded": true },
+  { "filterChip": "meeting", "description": "Seeded category: meeting", "expectRows": "some", "seeded": true },
+  { "filterChip": "development", "description": "Seeded category: development", "expectRows": "some", "seeded": true },
+  { "filterChip": "research", "description": "Seeded category: research", "expectRows": "some", "seeded": true },
+  { "filterChip": "admin", "description": "Seeded category: admin", "expectRows": "some", "seeded": true },
+  { "filterChip": "testing", "description": "Seeded category: testing", "expectRows": "some", "seeded": true },
+  { "filterChip": "communication", "description": "Alternative category: communication", "expectRows": "some", "seeded": false },
+  { "filterChip": "planning", "description": "Alternative category: planning", "expectRows": "some", "seeded": false },
+  { "filterChip": "review", "description": "Alternative category: review", "expectRows": "some", "seeded": false },
+  { "filterChip": "other", "description": "Alternative category: other", "expectRows": "some", "seeded": false },
+  { "filterChip": "quicklog", "description": "Quick-log created category", "expectRows": "some", "seeded": false },
+  { "filterChip": "file-ops", "description": "Hyphenated category: file-ops", "expectRows": "some", "seeded": false },
+  { "filterChip": "design", "description": "Alternative category: design", "expectRows": "some", "seeded": false },
+  { "filterChip": "marketing", "description": "Alternative category: marketing", "expectRows": "some", "seeded": false },
+  { "filterChip": "hr", "description": "Alternative category: hr", "expectRows": "some", "seeded": false },
+  { "filterChip": "finance", "description": "Alternative category: finance", "expectRows": "some", "seeded": false },
+  { "filterChip": "support", "description": "Alternative category: support", "expectRows": "some", "seeded": false },
+  { "filterChip": "sales", "description": "Alternative category: sales", "expectRows": "some", "seeded": false }
+]

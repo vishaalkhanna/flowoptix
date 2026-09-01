@@ -14,16 +14,23 @@ on:
   workflow_dispatch:
     inputs:
       browser:
-        description: 'Browser to run tests against'
+        description: 'Browser to run (leave blank for all three)'
         required: false
-        default: 'chrome'
+        default: ''
         type: choice
-        options: [chrome, firefox, edge]
+        options: ['', chrome, firefox, edge]
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJson(inputs.browser != '' && format('["{0}"]', inputs.browser) || '["chrome","firefox","edge"]') }}
+
+    name: E2E — ${{ matrix.browser }}
 
     steps:
       - name: Checkout
@@ -41,14 +48,23 @@ jobs:
         run: npm install
 
       - name: Set up Chrome
+        if: matrix.browser == 'chrome'
         uses: browser-actions/setup-chrome@v1
 
-      - name: Run E2E tests
+      - name: Set up Firefox
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+
+      - name: Set up Edge
+        if: matrix.browser == 'edge'
+        uses: browser-actions/setup-edge@v1
+
+      - name: Run E2E tests (${{ matrix.browser }})
         working-directory: e2e
         env:
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-          BROWSER: ${{ inputs.browser || 'chrome' }}
+          BROWSER: ${{ matrix.browser }}
           HEADLESS: 'true'
           BASE_URL: 'https://flowoptix-ten.vercel.app'
         run: npm test
@@ -57,7 +73,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-reports-${{ github.run_number }}
+          name: e2e-reports-${{ matrix.browser }}-${{ github.run_number }}
           path: |
             e2e/reports/
             e2e/excel/
@@ -68,6 +84,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-failures-${{ github.run_number }}
+          name: e2e-failures-${{ matrix.browser }}-${{ github.run_number }}
           path: e2e/reports/failures/
           retention-days: 14

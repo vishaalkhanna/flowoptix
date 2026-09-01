@@ -6,4 +6,4 @@ node_modules/
 reports/
 screenshots/
 logs/
-excel/
+# excel/ intentionally tracked — Selenium_E2E_Report.xlsx is a submission artifact
